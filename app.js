@@ -1,12 +1,24 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const db = require('./config'); // Import database connection from config.js
+const db = require('./config'); // Import MySQL connection from config.js
 
 const app = express();
 const port = 8080; // Port for your application
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Connect to MySQL
+db.connect((err) => {
+    if (err) {
+        console.error('Error connecting to MySQL database:', err.stack);
+        return;
+    }
+    console.log('Connected to MySQL database');
+    console.log('DB Host:', db.config.host);
+    console.log('DB Database:', db.config.database);
+    console.log('DB User:', db.config.user);
+});
 
 // Routes
 app.get('/', (req, res) => {
