@@ -10,6 +10,15 @@ const port = 8080;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+// Connect to MySQL
+db.connect((err) => {
+    if (err) {
+        console.error('Error connecting to MySQL database:', err);
+        throw err;
+    }
+    console.log('Connected to MySQL database');
+});
+
 // Register endpoint
 app.post('/register', (req, res) => {
     const { username, email, password } = req.body;
