@@ -23,22 +23,35 @@ db.connect((err) => {
 app.post('/api/register', (req, res) => {
     const { username, email, password } = req.body;
 
-    // Hash the password
-    bcrypt.hash(password, 10, (err, hashedPassword) => {
+    // Check if username or email already exists
+    db.query('SELECT * FROM users WHERE username = ? OR email = ?', [username, email], (err, results) => {
         if (err) {
-            console.error('Error hashing password:', err);
-            return res.status(500).json({ error: 'Password hashing failed' });
+            console.error('Error checking user existence:', err);
+            return res.status(500).json({ error: 'Database error' });
         }
 
-        // Save user to database
-        const newUser = { username, email, password_hash: hashedPassword };
-        db.query('INSERT INTO users SET ?', newUser, (err, result) => {
+        if (results.length > 0) {
+            // Username or email already exists
+            return res.status(409).json({ error: 'Username or email already exists' });
+        }
+
+        // Hash the password
+        bcrypt.hash(password, 10, (err, hashedPassword) => {
             if (err) {
-                console.error('Error inserting user into database:', err);
-                return res.status(500).json({ error: 'Failed to register user' });
+                console.error('Error hashing password:', err);
+                return res.status(500).json({ error: 'Password hashing failed' });
             }
-            console.log('User registered successfully:', result);
-            res.status(200).json({ message: 'User registered successfully' });
+
+            // Save user to database
+            const newUser = { username, email, password_hash: hashedPassword };
+            db.query('INSERT INTO users SET ?', newUser, (err, result) => {
+                if (err) {
+                    console.error('Error inserting user into database:', err);
+                    return res.status(500).json({ error: 'Failed to register user' });
+                }
+                console.log('User registered successfully:', result);
+                res.status(200).json({ message: 'User registered successfully' });
+            });
         });
     });
 });
