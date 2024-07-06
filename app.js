@@ -31,7 +31,7 @@ app.post('/api/register', (req, res) => {
         }
 
         // Save user to database
-        const newUser = { username, email, password: hashedPassword };
+        const newUser = { username, email, password_hash: hashedPassword };
         db.query('INSERT INTO users SET ?', newUser, (err, result) => {
             if (err) {
                 console.error('Error inserting user into database:', err);
