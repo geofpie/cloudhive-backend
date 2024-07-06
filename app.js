@@ -1,37 +1,36 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const bcrypt = require('bcryptjs'); // For hashing passwords
 const db = require('./config'); // Import MySQL connection from config.js
 
 const app = express();
-const port = 8080; // Port for your application
+const port = 8080;
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-// Connect to MySQL
-db.connect((err) => {
-    if (err) {
-        console.error('Error connecting to MySQL database:', err.stack);
-        return;
-    }
-    console.log('Connected to MySQL database');
-    console.log('DB Host:', db.config.host);
-    console.log('DB Database:', db.config.database);
-    console.log('DB User:', db.config.user);
-});
+// Register endpoint
+app.post('/register', (req, res) => {
+    const { username, email, password } = req.body;
 
-// Routes
-app.get('/', (req, res) => {
-    res.send('Hello, World!');
-});
-
-// Example route using database connection
-app.get('/users', (req, res) => {
-    db.query('SELECT * FROM users', (err, results) => {
+    // Hash the password
+    bcrypt.hash(password, 10, (err, hashedPassword) => {
         if (err) {
-            return res.status(500).json({ error: 'Database query failed' });
+            console.error('Error hashing password:', err);
+            return res.status(500).json({ error: 'Password hashing failed' });
         }
-        res.json(results);
+
+        // Save user to database
+        const newUser = { username, email, password: hashedPassword };
+        db.query('INSERT INTO users SET ?', newUser, (err, result) => {
+            if (err) {
+                console.error('Error inserting user into database:', err);
+                return res.status(500).json({ error: 'Failed to register user' });
+            }
+            console.log('User registered successfully:', result);
+            res.status(200).json({ message: 'User registered successfully' });
+        });
     });
 });
 
