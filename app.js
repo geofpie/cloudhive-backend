@@ -20,7 +20,7 @@ db.connect((err) => {
 });
 
 // Register endpoint
-app.post('/register', (req, res) => {
+app.post('/api/register', (req, res) => {
     const { username, email, password } = req.body;
 
     // Hash the password
