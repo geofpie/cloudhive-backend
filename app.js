@@ -63,7 +63,7 @@ app.post('/api/register', (req, res) => {
 
                 console.log('User registered successfully:', result);
                 
-                // Redirect to onboarding page with token in response
+                // Notify user registration is successful
                 res.status(200).json({ message: 'User registered successfully', token });
             });
         });
@@ -152,6 +152,12 @@ app.get('/api/fetchuserinfo', verifyToken, (req, res) => {
             last_name: results[0].last_name,
             country: results[0].country
         };
+
+        // Check if required fields are empty
+        if (!userInfo.first_name || !userInfo.last_name || !userInfo.country) {
+            // Redirect to onboarding process or return an error
+            return res.status(302).json({ error: 'User profile incomplete. Redirect to onboarding process.' });
+        }
 
         res.status(200).json(userInfo);
     });
