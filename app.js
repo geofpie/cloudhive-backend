@@ -124,6 +124,33 @@ app.post('/api/login', (req, res) => {
     });
 });
 
+// Endpoint to fetch user information
+app.get('/api/fetchuserinfo', verifyToken, (req, res) => {
+    const userId = req.user.userId;
+
+    db.query('SELECT username, email, first_name, last_name, country FROM users WHERE id = ?', [userId], (err, results) => {
+        if (err) {
+            console.error('Error fetching user information:', err);
+            return res.status(500).json({ error: 'Failed to fetch user information' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const userInfo = {
+            username: results[0].username,
+            email: results[0].email,
+            first_name: results[0].first_name,
+            last_name: results[0].last_name,
+            country: results[0].country
+        };
+
+        res.status(200).json(userInfo);
+    });
+});
+
+
 // Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
