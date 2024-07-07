@@ -134,9 +134,11 @@ app.get('/api/fetchuserinfo', verifyToken, (req, res) => {
     console.log('Received request to fetch user info'); // log level
     console.log('Session Cookie:', req.cookies); // Log cookies sent with the request
     console.log('User Information:', req.user); // Log decoded user information from JWT
+    console.log('Fetching user information for user ID:', userId); // Add this line for logging
 
     db.query('SELECT username, email, first_name, last_name, country FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
+            console.error('SQL Error:', err.sqlMessage); // Log SQL-specific error message
             console.error('Error fetching user information:', err);
             return res.status(500).json({ error: 'Failed to fetch user information' });
         }
