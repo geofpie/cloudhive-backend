@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs'); // For hashing passwords
 const db = require('./config'); // Import MySQL connection from config.js
 const JWT_SECRET = process.env.JWT_SECRET;
 const jwt = require('jsonwebtoken'); // json web tokens
+const cookieParser = require('cookie-parser');
 console.log('JWT_SECRET:', process.env.JWT_SECRET); // remove in prod
 
 const app = express();
@@ -13,6 +14,7 @@ const port = 8080;
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 // Connect to MySQL
 db.connect((err) => {
