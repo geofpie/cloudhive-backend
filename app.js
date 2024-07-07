@@ -132,6 +132,8 @@ app.post('/api/login', (req, res) => {
 app.get('/api/fetchuserinfo', verifyToken, (req, res) => {
     const userId = req.user.userId;
     console.log('Received request to fetch user info'); // log level
+    console.log('Session Cookie:', req.cookies); // Log cookies sent with the request
+    console.log('User Information:', req.user); // Log decoded user information from JWT
 
     db.query('SELECT username, email, first_name, last_name, country FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
