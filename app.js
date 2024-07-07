@@ -86,44 +86,39 @@ const verifyToken = (req, res, next) => {
     });
 };
 
-// Endpoint to fetch user information
-app.get('/api/userinfo', verifyToken, (req, res) => {
-    // User information is available in req.user from the JWT payload
-    const userId = req.user.userId;
+// Login endpoint
+app.post('/api/login', (req, res) => {
+    const { identifier, password } = req.body; // Use 'identifier' to accept either username or email
 
-    db.query('SELECT username, email FROM users WHERE id = ?', [userId], (err, results) => {
+    // Fetch user from database based on username or email
+    db.query('SELECT * FROM users WHERE username = ? OR email = ?', [identifier, identifier], (err, results) => {
         if (err) {
-            console.error('Error fetching user information:', err);
-            return res.status(500).json({ error: 'Failed to fetch user information' });
+            console.error('Error retrieving user:', err);
+            return res.status(500).json({ error: 'Database error' });
         }
 
         if (results.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(401).json({ error: 'Invalid username or email or password' });
         }
 
-        const userInfo = {
-            username: results[0].username,
-            email: results[0].email
-        };
+        const user = results[0];
+        
+        // Compare hashed password with provided password
+        bcrypt.compare(password, user.password_hash, (bcryptErr, bcryptRes) => {
+            if (bcryptErr || !bcryptRes) {
+                return res.status(401).json({ error: 'Invalid username or email or password' });
+            }
 
-        res.status(200).json(userInfo);
-    });
-});
+            // Generate JWT token
+            const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
 
+            // Log token generation
+            console.log('JWT Token Generated:', token);
 
-// Onboarding endpoint
-app.post('/api/onboard', verifyToken, (req, res) => {
-    const { firstName, lastName, profilePic } = req.body;
-    const userId = req.user.userId;
-
-    const updateUser = { first_name: firstName, last_name: lastName, profile_pic: profilePic };
-    db.query('UPDATE users SET ? WHERE id = ?', [updateUser, userId], (err, result) => {
-        if (err) {
-            console.error('Error updating user info:', err);
-            return res.status(500).json({ error: 'Failed to update user info' });
-        }
-        console.log('User onboarded successfully:', result);
-        res.status(200).json({ message: 'User onboarded successfully' });
+            // Send token in a cookie or JSON response
+            res.cookie('token', token, { httpOnly: true, secure: false }); // Change to secure: true in production
+            res.status(200).json({ message: 'Login successful', token });
+        });
     });
 });
 
