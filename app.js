@@ -134,7 +134,7 @@ app.get('/api/fetchuserinfo', verifyToken, (req, res) => {
     console.log('Received request to fetch user info'); // log level
     console.log('Session Cookie:', req.cookies); // Log cookies sent with the request
     console.log('User Information:', req.user); // Log decoded user information from JWT
-    console.log('Fetching user information for user ID:', userId); // Add this line for logging
+    console.log('Fetching user information for user ID:', userId);
 
     db.query('SELECT username, email, first_name, last_name, country FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
@@ -154,6 +154,8 @@ app.get('/api/fetchuserinfo', verifyToken, (req, res) => {
             last_name: results[0].last_name,
             country: results[0].country
         };
+
+        console.log('User information retrieved successfully:', userInfo); 
 
         // Check if required fields are empty
         if (!userInfo.first_name || !userInfo.last_name || !userInfo.country) {
