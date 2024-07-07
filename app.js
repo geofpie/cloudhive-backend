@@ -160,7 +160,8 @@ app.get('/api/fetchuserinfo', verifyToken, (req, res) => {
         // Check if required fields are empty
         if (!userInfo.first_name || !userInfo.last_name || !userInfo.country) {
             // Redirect to onboarding process or return an error
-            return res.status(302).json({ error: 'User profile incomplete. Redirect to onboarding process.' });
+            // return res.status(302).json({ error: 'User profile incomplete. Redirect to onboarding process.' });
+            return res.redirect('/onboarding');
         }
 
         res.status(200).json(userInfo);
