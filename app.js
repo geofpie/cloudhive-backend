@@ -149,7 +149,7 @@ app.post('/api/login', (req, res) => {
                 // Check if required fields are empty
                 if (!userInfo.first_name || !userInfo.last_name || !userInfo.country) {
                     // Redirect to onboarding process or return an error
-                    console.log(`Redirecting user to onboarding page (${req.user.username})`);
+                    console.log('return 302');
                     return res.status(302).json({ redirect: '/onboarding' });
                 }
 
