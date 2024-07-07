@@ -6,15 +6,26 @@ const db = require('./config'); // Import MySQL connection from config.js
 const JWT_SECRET = process.env.JWT_SECRET;
 const jwt = require('jsonwebtoken'); // json web tokens
 const cookieParser = require('cookie-parser');
-console.log('JWT_SECRET:', process.env.JWT_SECRET); // remove in prod
+const multer = require('multer'); // For handling file uploads
+const AWS = require('aws-sdk'); // AWS SDK for S3 operations
+const fs = require('fs'); // File system module
 
 const app = express();
 const port = 8080;
+
+// Configure AWS SDK for S3
+const s3 = new AWS.S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
+
+// Multer middleware for handling file uploads (profile picture)
+const upload = multer({ dest: 'uploads/' });
 
 // Connect to MySQL
 db.connect((err) => {
@@ -149,6 +160,96 @@ app.post('/api/login_redirect', (req, res) => {
         });
     });
 });
+
+// Endpoint for updating profile (including profile picture)
+app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic'), (req, res) => {
+    const userId = req.user.userId; // Extract user ID from JWT
+    const { firstName, lastName, country } = req.body;
+    const profilePicFile = req.file; // Multer uploads profilePic file data
+
+    // Check if profilePicFile exists (optional: handle profile picture upload)
+    if (profilePicFile) {
+        // Read file data
+        fs.readFile(profilePicFile.path, (err, data) => {
+            if (err) {
+                console.error('Error reading profile picture file:', err);
+                return res.status(500).json({ error: 'Failed to read profile picture file' });
+            }
+
+            // Parameters for S3 upload
+            const params = {
+                Bucket: 'cloudhive-userdata', // Replace with your S3 bucket name
+                Key: `${userId}/profilePic.jpg`, // File name in S3 bucket
+                Body: data,
+                ACL: 'private', // Set ACL to private to restrict access
+            };
+
+            // Upload to S3
+            s3.upload(params, (s3Err, s3Data) => {
+                if (s3Err) {
+                    console.error('Error uploading to S3:', s3Err);
+                    return res.status(500).json({ error: 'Failed to upload profile picture to S3' });
+                }
+
+                console.log('Profile picture uploaded successfully:', s3Data.Location);
+
+                // Update user profile in database with profile picture URL
+                db.query('UPDATE users SET first_name = ?, last_name = ?, country = ?, profile_pic_url = ? WHERE user_id = ?',
+                    [firstName, lastName, country, s3Data.Location, userId],
+                    (dbErr, dbResult) => {
+                        if (dbErr) {
+                            console.error('Error updating user profile in database:', dbErr);
+                            return res.status(500).json({ error: 'Failed to update user profile' });
+                        }
+
+                        console.log('User profile updated successfully in database:', dbResult);
+
+                        // Send success response
+                        res.status(200).json({ message: 'User profile updated successfully' });
+                    }
+                );
+            });
+        });
+    } else {
+        // No profile picture uploaded
+        // Update user profile in database without profile picture URL
+        db.query('UPDATE users SET first_name = ?, last_name = ?, country = ? WHERE user_id = ?',
+            [firstName, lastName, country, userId],
+            (dbErr, dbResult) => {
+                if (dbErr) {
+                    console.error('Error updating user profile in database:', dbErr);
+                    return res.status(500).json({ error: 'Failed to update user profile' });
+                }
+
+                console.log('User profile updated successfully in database:', dbResult);
+
+                // Send success response
+                res.status(200).json({ message: 'User profile updated successfully' });
+            }
+        );
+    }
+});
+
+// Endpoint to fetch logged-in user info
+app.get('/api/get_user_info', verifyToken, (req, res) => {
+    const userId = req.user.userId; // Extract user ID from JWT
+
+    // Fetch user information from database
+    db.query('SELECT username, email FROM users WHERE user_id = ?', [userId], (err, results) => {
+        if (err) {
+            console.error('Error fetching user information:', err);
+            return res.status(500).json({ error: 'Failed to fetch user information' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const userInfo = results[0];
+        res.status(200).json({ userInfo });
+    });
+});
+
 
 // Start server
 app.listen(port, () => {
