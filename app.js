@@ -47,15 +47,22 @@ app.post('/api/register', (req, res) => {
             db.query('INSERT INTO users SET ?', newUser, (err, result) => {
                 if (err) {
                     console.error('Error inserting user into database:', err);
-                    return res.status(500).json({ error: 'Failed to register user' });
+                    return res.status(500).json({ error: 'Failed to register user. Database error: ' + err.message });
                 }
 
                 const userId = result.insertId;
                 const token = jwt.sign({ userId, username }, JWT_SECRET, { expiresIn: '1h' });
+
+                // Log token generation
+                console.log('JWT Token Generated:', token);
+
+                // Send the token as part of the response
                 res.cookie('token', token, { httpOnly: true, secure: false }); // change this to true in prod
 
                 console.log('User registered successfully:', result);
-                res.status(200).json({ message: 'User registered successfully' });
+                
+                // Redirect to onboarding page with token in response
+                res.status(200).json({ message: 'User registered successfully', token });
             });
         });
     });
@@ -94,7 +101,6 @@ app.post('/api/onboard', verifyToken, (req, res) => {
         res.status(200).json({ message: 'User onboarded successfully' });
     });
 });
-
 
 // Start server
 app.listen(port, () => {
