@@ -128,7 +128,7 @@ app.post('/api/login', (req, res) => {
 app.get('/api/fetchuserinfo', verifyToken, (req, res) => {
     const userId = req.user.userId;
 
-    db.query('SELECT username, email, first_name, last_name, country FROM users WHERE id = ?', [userId], (err, results) => {
+    db.query('SELECT username, email, first_name, last_name, country FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
             console.error('Error fetching user information:', err);
             return res.status(500).json({ error: 'Failed to fetch user information' });
