@@ -84,6 +84,10 @@ const verifyToken = (req, res, next) => {
         }
 
         req.user = decoded; // Attach the decoded token to the request object
+
+        // Log user information
+        console.log('User logged in:', req.user);
+
         next();
     });
 };
