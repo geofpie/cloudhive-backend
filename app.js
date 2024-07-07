@@ -86,6 +86,31 @@ const verifyToken = (req, res, next) => {
     });
 };
 
+// Endpoint to fetch user information
+app.get('/api/userinfo', verifyToken, (req, res) => {
+    // User information is available in req.user from the JWT payload
+    const userId = req.user.userId;
+
+    db.query('SELECT username, email FROM users WHERE id = ?', [userId], (err, results) => {
+        if (err) {
+            console.error('Error fetching user information:', err);
+            return res.status(500).json({ error: 'Failed to fetch user information' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const userInfo = {
+            username: results[0].username,
+            email: results[0].email
+        };
+
+        res.status(200).json(userInfo);
+    });
+});
+
+
 // Onboarding endpoint
 app.post('/api/onboard', verifyToken, (req, res) => {
     const { firstName, lastName, profilePic } = req.body;
