@@ -131,6 +131,7 @@ app.post('/api/login', (req, res) => {
 // Endpoint to fetch user information
 app.get('/api/fetchuserinfo', verifyToken, (req, res) => {
     const userId = req.user.userId;
+    console.log('Received request to fetch user info'); // log level
 
     db.query('SELECT username, email, first_name, last_name, country FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
