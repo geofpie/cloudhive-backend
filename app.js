@@ -116,7 +116,7 @@ app.post('/api/login', (req, res) => {
             }
 
             // Generate JWT token
-            const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign({ userId: user.user_id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
 
             // Log token generation
             console.log('JWT Token Generated:', token);
