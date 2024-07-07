@@ -92,7 +92,26 @@ const verifyToken = (req, res, next) => {
     });
 };
 
-/yptRes) {
+// Login endpoint
+app.post('/api/login', (req, res) => {
+    const { identifier, password } = req.body; // Use 'identifier' to accept either username or email
+
+    // Fetch user from database based on username or email
+    db.query('SELECT * FROM users WHERE username = ? OR email = ?', [identifier, identifier], (err, results) => {
+        if (err) {
+            console.error('Error retrieving user:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (results.length === 0) {
+            return res.status(401).json({ error: 'Invalid username or email or password' });
+        }
+
+        const user = results[0];
+        
+        // Compare hashed password with provided password
+        bcrypt.compare(password, user.password_hash, (bcryptErr, bcryptRes) => {
+            if (bcryptErr || !bcryptRes) {
                 return res.status(401).json({ error: 'Invalid username or email or password' });
             }
 
