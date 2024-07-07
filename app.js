@@ -6,7 +6,6 @@ const db = require('./config'); // Import MySQL connection from config.js
 const JWT_SECRET = process.env.JWT_SECRET;
 const jwt = require('jsonwebtoken'); // json web tokens
 const cookieParser = require('cookie-parser');
-const multer = require('multer'); // For handling file uploads
 const AWS = require('aws-sdk'); // AWS SDK for S3 operations
 const fs = require('fs'); // File system module
 
@@ -23,9 +22,6 @@ const s3 = new AWS.S3({
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
-
-// Multer middleware for handling file uploads (profile picture)
-const upload = multer({ dest: 'uploads/' });
 
 // Connect to MySQL
 db.connect((err) => {
