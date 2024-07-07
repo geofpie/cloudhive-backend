@@ -123,43 +123,49 @@ app.post('/api/login', (req, res) => {
 
             // Send token in a cookie or JSON response
             res.cookie('token', token, { httpOnly: true, secure: false }); // Change to secure: true in production
-
-            // Fetch user information to check for required fields
-            db.query('SELECT username, email, first_name, last_name, country FROM users WHERE user_id = ?', [user.user_id], (err, results) => {
-                if (err) {
-                    console.error('SQL Error:', err.sqlMessage); // Log SQL-specific error message
-                    console.error('Error fetching user information:', err);
-                    return res.status(500).json({ error: 'Failed to fetch user information' });
-                }
-
-                if (results.length === 0) {
-                    return res.status(404).json({ error: 'User not found' });
-                }
-
-                const userInfo = {
-                    username: results[0].username,
-                    email: results[0].email,
-                    first_name: results[0].first_name,
-                    last_name: results[0].last_name,
-                    country: results[0].country
-                };
-
-                console.log('User information retrieved successfully:', userInfo); 
-
-                // Check if required fields are empty
-                if (!userInfo.first_name || !userInfo.last_name || !userInfo.country) {
-                    // Redirect to onboarding process or return an error
-                    console.log('return 302');
-                    return res.status(302).json({ redirect: '/onboarding' });
-                }
-
-                // Return token and other user information
-                res.status(200).json({ message: 'Login successful', token, user: userInfo });
-            });
+            res.status(200).json({ message: 'Login successful', token });
         });
     });
 });
 
+// Endpoint to fetch user information
+app.get('/api/fetchuserinfo', verifyToken, (req, res) => {
+    const userId = req.user.userId;
+    console.log('Received request to fetch user info'); // log level
+    console.log('Session Cookie:', req.cookies); // Log cookies sent with the request
+    console.log('User Information:', req.user); // Log decoded user information from JWT
+    console.log('Fetching user information for user ID:', userId); // Add this line for logging
+
+    db.query('SELECT username, email, first_name, last_name, country FROM users WHERE user_id = ?', [userId], (err, results) => {
+        if (err) {
+            console.error('SQL Error:', err.sqlMessage); // Log SQL-specific error message
+            console.error('Error fetching user information:', err);
+            return res.status(500).json({ error: 'Failed to fetch user information' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const userInfo = {
+            username: results[0].username,
+            email: results[0].email,
+            first_name: results[0].first_name,
+            last_name: results[0].last_name,
+            country: results[0].country
+        };
+
+        console.log('User information retrieved successfully:', userInfo); // Add this line for logging
+
+        // Check if required fields are empty
+        if (!userInfo.first_name || !userInfo.last_name || !userInfo.country) {
+            // Redirect to onboarding process or return an error
+            return res.status(302).json({ error: 'User profile incomplete. Redirect to onboarding process.' });
+        }
+
+        res.status(200).json(userInfo);
+    });
+});
 
 
 // Start server
