@@ -1,3 +1,8 @@
+// cloudhive Backend
+// for EC2, built with nodejs and <3
+// July 2024
+
+// Import Modules 
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -8,6 +13,8 @@ const jwt = require('jsonwebtoken'); // json web tokens
 const cookieParser = require('cookie-parser');
 const AWS = require('aws-sdk'); // AWS SDK for S3 operations
 const fs = require('fs'); // File system module
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 const port = 8080;
@@ -174,6 +181,59 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
 
         const userInfo = results[0];
         res.status(200).json({ userInfo });
+    });
+});
+
+app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Determine the file extension
+    const mimeType = req.file.mimetype;
+    let extension = '';
+    switch (mimeType) {
+        case 'image/jpeg':
+            extension = 'jpg';
+            break;
+        case 'image/png':
+            extension = 'png';
+            break;
+        case 'image/gif':
+            extension = 'gif';
+            break;
+        default:
+            return res.status(400).json({ error: 'Unsupported file type' });
+    }
+
+    // Create S3 upload parameters
+    const params = {
+        Bucket: 'cloudhive-data', // Replace with your bucket name
+        Key: `profile-pics/${req.user.userId}-${req.user.username}.${extension}`, // User ID and username as the filename
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+        ACL: 'private' // Ensure the file is private
+    };
+
+    // Upload the file to S3
+    s3.upload(params, (err, data) => {
+        if (err) {
+            console.error('Error uploading file to S3:', err);
+            return res.status(500).json({ error: 'Failed to upload file' });
+        }
+
+        console.log('File uploaded successfully:', data);
+
+        // Update the user's profile picture URL in the database
+        const profilePicUrl = data.Location;
+        db.query('UPDATE users SET profile_pic_url = ? WHERE user_id = ?', [profilePicUrl, req.user.userId], (err, result) => {
+            if (err) {
+                console.error('Error updating profile picture URL in database:', err);
+                return res.status(500).json({ error: 'Failed to update profile picture' });
+            }
+
+            res.status(200).json({ message: 'Profile picture updated successfully', profilePicUrl });
+        });
     });
 });
 
