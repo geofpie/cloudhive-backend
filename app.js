@@ -186,8 +186,12 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
 
 app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic'), (req, res) => {
     if (!req.file) {
+        console.log('No file uploaded');
         return res.status(400).json({ error: 'No file uploaded' });
     }
+
+    // Log the received file details
+    console.log('File received:', req.file);
 
     // Determine the file extension
     const mimeType = req.file.mimetype;
@@ -214,6 +218,9 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
         ContentType: req.file.mimetype,
         ACL: 'private' // Ensure the file is private
     };
+
+    // Log the S3 upload parameters
+    console.log('S3 upload parameters:', params);
 
     // Upload the file to S3
     s3.upload(params, (err, data) => {
