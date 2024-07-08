@@ -234,19 +234,25 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
 
         console.log('File uploaded successfully:', data);
 
-        // Update the user's profile picture URL in the database
+        // Update the user's profile picture URL and additional fields in the database
         const profilePicUrl = data.Location;
-        db.query('UPDATE users SET profile_pic = ? WHERE user_id = ?', [profilePicUrl, req.user.userId], (err, result) => {
-            if (err) {
-                console.error('Error updating profile picture URL in database:', err);
-                return res.status(500).json({ error: 'Failed to update profile picture' });
-            }
+        const firstName = req.body['first-name'];
+        const lastName = req.body['last-name'];
+        const country = req.body.country;
 
-            res.status(200).json({ message: 'Profile picture updated successfully', profilePicUrl });
-        });
+        // Update user information in the database
+        db.query('UPDATE users SET profile_pic = ?, first_name = ?, last_name = ?, country = ? WHERE user_id = ?', 
+            [profilePicUrl, firstName, lastName, country, req.user.userId], 
+            (err, result) => {
+                if (err) {
+                    console.error('Error updating user information in database:', err);
+                    return res.status(500).json({ error: 'Failed to update user information' });
+                }
+
+                res.status(200).json({ message: 'Profile picture and user information updated successfully', profilePicUrl });
+            });
     });
 });
-
 
 // Start server
 app.listen(port, () => {
