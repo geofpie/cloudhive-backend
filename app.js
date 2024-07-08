@@ -212,7 +212,7 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
 
     // Create S3 upload parameters
     const params = {
-        Bucket: 'cloudhive-data', // Replace with your bucket name
+        Bucket: 'cloudhive-userdata', 
         Key: `profile-pics/${req.user.userId}-${req.user.username}.${extension}`, // User ID and username as the filename
         Body: req.file.buffer,
         ContentType: req.file.mimetype,
