@@ -15,6 +15,7 @@ const AWS = require('aws-sdk'); // AWS SDK for S3 operations
 const fs = require('fs'); // File system module
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
+const crypto = require('crypto');
 
 const app = express();
 const port = 8080;
@@ -210,10 +211,12 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
             return res.status(400).json({ error: 'Unsupported file type' });
     }
 
+    const randomString = crypto.randomBytes(6).toString('hex');
+
     // Create S3 upload parameters
     const params = {
         Bucket: 'cloudhive-userdata', 
-        Key: `profile-pics/${req.user.userId}-${req.user.username}.${extension}`, // User ID and username as the filename
+        Key: `profile-pics/${req.user.userId}-${req.user.username}-${randomString}.${extension}`, // User ID and username as the filename
         Body: req.file.buffer,
         ContentType: req.file.mimetype,
         ACL: 'private' // Ensure the file is private
