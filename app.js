@@ -233,7 +233,7 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
 
         // Update the user's profile picture URL in the database
         const profilePicUrl = data.Location;
-        db.query('UPDATE users SET profile_pic_url = ? WHERE user_id = ?', [profilePicUrl, req.user.userId], (err, result) => {
+        db.query('UPDATE users SET profile_pic = ? WHERE user_id = ?', [profilePicUrl, req.user.userId], (err, result) => {
             if (err) {
                 console.error('Error updating profile picture URL in database:', err);
                 return res.status(500).json({ error: 'Failed to update profile picture' });
