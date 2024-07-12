@@ -170,7 +170,7 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
     const userId = req.user.userId; // Extract user ID from JWT
 
     // Fetch user information from database
-    db.query('SELECT username, email FROM users WHERE user_id = ?', [userId], (err, results) => {
+    db.query('SELECT first_name, username, email FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
             console.error('Error fetching user information:', err);
             return res.status(500).json({ error: 'Failed to fetch user information' });
