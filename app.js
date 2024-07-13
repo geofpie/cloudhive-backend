@@ -21,7 +21,10 @@ const app = express();
 const port = 8080;
 
 // Configure AWS SDK for S3
-const s3 = new AWS.S3();
+const s3 = new AWS.S3()({
+    region: 'us-east-1', 
+    signatureVersion: 'v4'
+});
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
