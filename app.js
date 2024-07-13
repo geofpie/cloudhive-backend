@@ -166,6 +166,9 @@ app.post('/api/login_redirect', (req, res) => {
 app.get('/api/get_user_info', verifyToken, (req, res) => {
     const userId = req.user.userId;
 
+    // Log the user ID
+    console.log(`Fetching information for user ID: ${userId}`);
+
     // Fetch user information from database
     db.query('SELECT first_name, last_name, profilepic_key, username, email FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
@@ -174,14 +177,19 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
         }
 
         if (results.length === 0) {
+            console.log('User not found');
             return res.status(404).json({ error: 'User not found' });
         }
 
         const userInfo = results[0];
 
+        // Log the fetched user information
+        console.log('User information fetched:', userInfo);
+
         // Generate presigned URL for profile picture
-        const profilePictureKey = userInfo.profile_picture_key;
+        const profilePictureKey = userInfo.profilepic_key;
         if (profilePictureKey) {
+            console.log(`Profile picture key found: ${profilePictureKey}`);
             const params = {
                 Bucket: 'cloudhive-userdata',
                 Key: profilePictureKey,
@@ -193,10 +201,12 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
                     return res.status(500).json({ error: 'Failed to generate presigned URL' });
                 }
 
+                console.log(`Presigned URL generated: ${url}`);
                 userInfo.profile_picture_url = url;
                 res.status(200).json({ userInfo });
             });
         } else {
+            console.log('No profile picture key found');
             res.status(200).json({ userInfo });
         }
     });
