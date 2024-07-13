@@ -21,10 +21,7 @@ const app = express();
 const port = 8080;
 
 // Configure AWS SDK for S3
-const s3 = new AWS.S3({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
+const s3 = new AWS.S3();
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -167,10 +164,10 @@ app.post('/api/login_redirect', (req, res) => {
 
 // Endpoint to fetch logged-in user info
 app.get('/api/get_user_info', verifyToken, (req, res) => {
-    const userId = req.user.userId; // Extract user ID from JWT
+    const userId = req.user.userId;
 
     // Fetch user information from database
-    db.query('SELECT first_name, username, email FROM users WHERE user_id = ?', [userId], (err, results) => {
+    db.query('SELECT first_name, last_name, profilepic_key, username, email FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
             console.error('Error fetching user information:', err);
             return res.status(500).json({ error: 'Failed to fetch user information' });
@@ -181,7 +178,27 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
         }
 
         const userInfo = results[0];
-        res.status(200).json({ userInfo });
+
+        // Generate presigned URL for profile picture
+        const profilePictureKey = userInfo.profile_picture_key;
+        if (profilePictureKey) {
+            const params = {
+                Bucket: 'cloudhive-userdata',
+                Key: profilePictureKey,
+                Expires: 60 * 60 // 1 hour expiration
+            };
+            s3.getSignedUrl('getObject', params, (err, url) => {
+                if (err) {
+                    console.error('Error generating presigned URL:', err);
+                    return res.status(500).json({ error: 'Failed to generate presigned URL' });
+                }
+
+                userInfo.profile_picture_url = url;
+                res.status(200).json({ userInfo });
+            });
+        } else {
+            res.status(200).json({ userInfo });
+        }
     });
 });
 
@@ -212,14 +229,15 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
     }
 
     const randomString = crypto.randomBytes(6).toString('hex');
+    const profilePicKey = `profile-pics/${req.user.userId}-${req.user.username}-${randomString}.${extension}`;
 
     // Create S3 upload parameters
     const params = {
         Bucket: 'cloudhive-userdata', 
-        Key: `profile-pics/${req.user.userId}-${req.user.username}-${randomString}.${extension}`, // User ID and username as the filename
+        Key: profilePicKey,
         Body: req.file.buffer,
         ContentType: req.file.mimetype,
-        ACL: 'private' // Ensure the file is private
+        ACL: 'private' 
     };
 
     // Log the S3 upload parameters
@@ -241,8 +259,8 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
         const country = req.body.country;
 
         // Update user information in the database
-        db.query('UPDATE users SET profile_pic = ?, first_name = ?, last_name = ?, country = ? WHERE user_id = ?', 
-            [profilePicUrl, firstName, lastName, country, req.user.userId], 
+        db.query('UPDATE users SET profile_pic = ?, profilepic_key = ?, first_name = ?, last_name = ?, country = ? WHERE user_id = ?', 
+            [profilePicUrl, profilePicKey, firstName, lastName, country, req.user.userId], 
             (err, result) => {
                 if (err) {
                     console.error('Error updating user information in database:', err);
