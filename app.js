@@ -16,6 +16,7 @@ const fs = require('fs'); // File system module
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 const crypto = require('crypto');
+const path = require('path');
 
 const app = express();
 const port = 8080;
@@ -26,10 +27,15 @@ const s3 = new AWS.S3({
     signatureVersion: 'v4'
 });
 
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
+app.use(express.static('public'));
 
 // Connect to MySQL
 db.connect((err) => {
@@ -284,6 +290,49 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
             });
     });
 });
+
+// Endpoint to fetch and render user profile page
+app.get('/:username', verifyToken, (req, res) => {
+    const username = req.params.username;
+
+    db.query('SELECT * FROM users WHERE username = ?', [username], (err, results) => {
+        if (err) {
+            console.error('Error fetching user information:', err);
+            return res.status(500).send('Internal Server Error');
+        }
+
+        if (results.length === 0) {
+            return res.status(404).send('User not found');
+        }
+
+        const userInfo = results[0];
+
+        // Generate presigned URL for profile picture if exists
+        const profilePictureKey = userInfo.profilepic_key;
+        if (profilePictureKey) {
+            const params = {
+                Bucket: 'cloudhive-userdata',
+                Key: profilePictureKey,
+                Expires: 60 * 60 // 1 hour expiration
+            };
+            s3.getSignedUrl('getObject', params, (err, url) => {
+                if (err) {
+                    console.error('Error generating presigned URL:', err);
+                    return res.status(500).send('Internal Server Error');
+                }
+
+                userInfo.profile_picture_url = url;
+
+                // Render profile.ejs with user data
+                res.render('profile', { user: userInfo });
+            });
+        } else {
+            // Render profile.ejs with user data
+            res.render('profile', { user: userInfo });
+        }
+    });
+});
+
 
 // Start server
 app.listen(port, () => {
