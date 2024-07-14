@@ -338,6 +338,8 @@ app.get('/:username', verifyToken, (req, res) => {
 
 app.post('/api/posts', (req, res) => {
     const { userId, content, imageUrl } = req.body;
+    console.log('Received POST request to create a post');
+    console.log('Request body:', req.body);
 
     // Validate inputs (userId should be fetched from req.user or req.session)
     if (!userId || !content) {
