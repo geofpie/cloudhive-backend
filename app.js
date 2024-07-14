@@ -16,7 +16,7 @@ const fs = require('fs'); // File system module
 const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const dynamoDB = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' });
 
 const app = express();
 const port = 8080;
@@ -28,8 +28,6 @@ const s3 = new AWS.S3({
 });
 
 const upload = multer({ storage: multer.memoryStorage() });
-
-AWS.config.update({ region: 'us-east-1' });
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
