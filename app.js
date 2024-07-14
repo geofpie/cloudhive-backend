@@ -336,6 +336,38 @@ app.get('/:username', verifyToken, (req, res) => {
     });
 });
 
+app.post('/api/posts', (req, res) => {
+    const { userId, content, imageUrl } = req.body;
+
+    // Validate inputs (userId should be fetched from req.user or req.session)
+    if (!userId || !content) {
+        return res.status(400).json({ message: 'userId and content are required' });
+    }
+
+    // Save the post to DynamoDB or your preferred database
+    const postId = generatePostId(); // Implement your own postId generation function
+    const createdAt = new Date().toISOString();
+
+    const params = {
+        TableName: 'Posts',
+        Item: {
+            postId,
+            userId,
+            content,
+            imageUrl,
+            createdAt
+        }
+    };
+
+    dynamoDB.put(params, (err, data) => {
+        if (err) {
+            console.error('Error saving post:', err);
+            return res.status(500).json({ message: 'Failed to save post' });
+        }
+
+        res.status(201).json({ postId });
+    });
+});
 
 
 // Start server
