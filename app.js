@@ -376,7 +376,7 @@ app.post('/api/posts', (req, res) => {
 
 app.post('/api/create_post', verifyToken, upload.single('postImage'), (req, res) => {
     const { content } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.userId.toString(); // Ensure userId is a string
     const username = req.user.username;
 
     let imageUrl = null;
@@ -407,6 +407,32 @@ app.post('/api/create_post', verifyToken, upload.single('postImage'), (req, res)
         savePostToDynamoDB(userId, username, content, imageUrl, res);
     }
 });
+
+function savePostToDynamoDB(userId, username, content, imageUrl, res) {
+    const postId = crypto.randomBytes(16).toString('hex');
+    const timestamp = new Date().toISOString();
+
+    const params = {
+        TableName: 'cloudhive-postdb',
+        Item: {
+            postId: postId,
+            userId: userId,
+            username: username,
+            content: content,
+            imageUrl: imageUrl,
+            timestamp: timestamp
+        }
+    };
+
+    dynamoDB.put(params, (err, data) => {
+        if (err) {
+            console.error('Error saving post to DynamoDB:', err);
+            return res.status(500).json({ error: 'Failed to save post' });
+        }
+
+        res.status(201).json({ message: 'Post created successfully' });
+    });
+}
 
 function savePostToDynamoDB(userId, username, content, imageUrl, res) {
     const postId = crypto.randomBytes(16).toString('hex');
