@@ -89,6 +89,7 @@
             </div>
         </div>
 
+        <% if (loggedInUser.username === user.username) { %>
         <div class="row profile-user-post align-items-center">
             <div class="col"></div>
             <div class="col-md-5 hive-post-action-bar shadow-sm">
@@ -103,6 +104,8 @@
             </div>
             <div class="col"></div>
         </div>
+        <% } %>
+        
         <div class="row hive-feed-area">
             <!-- Post Template -->
             <div class="col-md-5 hive-post-element mx-auto shadow-sm">
