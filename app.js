@@ -466,39 +466,25 @@ function savePostToDynamoDB(userId, username, content, imageUrl, res) {
     });
 }
 
-// Function to fetch posts
-app.post('/api/get_posts', async (req, res) => {
-    // Retrieve posts from DynamoDB or any other storage
-    // Assuming posts is an array of post objects retrieved from your database
+// POST endpoint to fetch posts
+app.post('/api/get_posts', (req, res) => {
+    const { limit, lastEvaluatedKey } = req.body;
 
-    // Function to generate pre-signed URLs for images
-    const generatePresignedUrl = async (key) => {
-        try {
-            const params = {
-                Bucket: 'your-bucket-name',
-                Key: key,
-                Expires: 3600, // URL expires in 1 hour
-            };
-            const url = await s3.getSignedUrlPromise('getObject', params);
-            return url;
-        } catch (error) {
-            console.error('Error generating pre-signed URL:', error);
-            return null;
-        }
+    const params = {
+        TableName: TABLE_NAME,
+        Limit: limit,
+        ExclusiveStartKey: lastEvaluatedKey
     };
 
-    // Iterate over posts and generate pre-signed URLs for images
-    const postsWithPresignedUrls = await Promise.all(posts.map(async (post) => {
-        if (post.imageUrl) {
-            const presignedUrl = await generatePresignedUrl(post.imageUrl);
-            return { ...post, presignedUrl };
+    dynamoDB.scan(params, (err, data) => {
+        if (err) {
+            console.error('Error fetching posts from DynamoDB:', err);
+            return res.status(500).json({ error: 'Error fetching posts from DynamoDB' });
         }
-        return post;
-    }));
-
-    // Return posts with pre-signed URLs in response
-    res.json(postsWithPresignedUrls);
+        res.json(data);
+    });
 });
+
 
 // Start server
 app.listen(port, () => {
