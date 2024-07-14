@@ -374,154 +374,65 @@ app.post('/api/posts', (req, res) => {
     });
 });
 
-app.post('/api/update_profile', verifyToken, upload.fields([
-    { name: 'profilePic', maxCount: 1 },
-    { name: 'headerPic', maxCount: 1 }
-]), (req, res) => {
-    // Handle errors if no files were uploaded
-    if ((!req.files || Object.keys(req.files).length === 0) &&
-        (!req.body['first-name'] || !req.body['last-name'] || !req.body.country)) {
-        console.log('No files uploaded and required fields missing');
-        return res.status(400).json({ error: 'No files uploaded and required fields missing' });
-    }
+app.post('/api/create_post', verifyToken, upload.single('postImage'), (req, res) => {
+    const { content } = req.body;
+    const userId = req.user.userId;
+    const username = req.user.username;
 
-    let profilePicUrl = req.body.profilePicUrl || null;
-    let headerPicUrl = req.body.headerPicUrl || null;
-    let profilePicKey = req.body.profilePicKey || null;
-    let headerPicKey = req.body.headerPicKey || null;
+    let imageUrl = null;
 
-    // Handle profile picture upload
-    if (req.files['profilePic']) {
-        const profilePicFile = req.files['profilePic'][0];
-        
-        // Log the received file details
-        console.log('Profile Picture File received:', profilePicFile);
+    if (req.file) {
+        const file = req.file;
+        const fileExtension = file.mimetype.split('/')[1];
+        const fileKey = `postcontent/${userId}-${crypto.randomBytes(6).toString('hex')}.${fileExtension}`;
 
-        // Determine the file extension
-        const profilePicMimeType = profilePicFile.mimetype;
-        let profilePicExtension = '';
-        switch (profilePicMimeType) {
-            case 'image/jpeg':
-                profilePicExtension = 'jpg';
-                break;
-            case 'image/png':
-                profilePicExtension = 'png';
-                break;
-            case 'image/gif':
-                profilePicExtension = 'gif';
-                break;
-            default:
-                return res.status(400).json({ error: 'Unsupported profile picture file type' });
-        }
-
-        // Generate random strings for file keys
-        const randomStringProfilePic = crypto.randomBytes(6).toString('hex');
-        profilePicKey = `profile-pics/${req.user.userId}-${req.user.username}-${randomStringProfilePic}.${profilePicExtension}`;
-
-        // Create S3 upload parameters for profile picture
-        const profilePicParams = {
+        const uploadParams = {
             Bucket: 'cloudhive-userdata',
-            Key: profilePicKey,
-            Body: profilePicFile.buffer,
-            ContentType: profilePicFile.mimetype,
+            Key: fileKey,
+            Body: file.buffer,
+            ContentType: file.mimetype,
             ACL: 'private'
         };
 
-        // Upload profile picture to S3
-        new Promise((resolve, reject) => {
-            s3.upload(profilePicParams, (err, data) => {
-                if (err) {
-                    console.error('Error uploading profile picture to S3:', err);
-                    return reject({ error: 'Failed to upload profile picture' });
-                }
-                console.log('Profile Picture uploaded successfully:', data);
-                profilePicUrl = data.Location; // Update profilePicUrl with S3 URL
-                resolve();
-            });
-        })
-        .catch(error => {
-            console.error('Error uploading profile picture to S3:', error);
-            return res.status(500).json({ error: 'Failed to upload profile picture to S3' });
-        });
-    }
-
-    // Handle header picture upload
-    if (req.files['headerPic']) {
-        const headerPicFile = req.files['headerPic'][0];
-        
-        // Log the received file details
-        console.log('Header Picture File received:', headerPicFile);
-
-        // Determine the file extension
-        const headerPicMimeType = headerPicFile.mimetype;
-        let headerPicExtension = '';
-        switch (headerPicMimeType) {
-            case 'image/jpeg':
-                headerPicExtension = 'jpg';
-                break;
-            case 'image/png':
-                headerPicExtension = 'png';
-                break;
-            case 'image/gif':
-                headerPicExtension = 'gif';
-                break;
-            default:
-                return res.status(400).json({ error: 'Unsupported header picture file type' });
-        }
-
-        // Generate random strings for file keys
-        const randomStringHeaderPic = crypto.randomBytes(6).toString('hex');
-        headerPicKey = `header-pics/${req.user.userId}-${req.user.username}-${randomStringHeaderPic}.${headerPicExtension}`;
-
-        // Create S3 upload parameters for header picture
-        const headerPicParams = {
-            Bucket: 'cloudhive-userdata',
-            Key: headerPicKey,
-            Body: headerPicFile.buffer,
-            ContentType: headerPicFile.mimetype,
-            ACL: 'private'
-        };
-
-        // Upload header picture to S3
-        new Promise((resolve, reject) => {
-            s3.upload(headerPicParams, (err, data) => {
-                if (err) {
-                    console.error('Error uploading header picture to S3:', err);
-                    return reject({ error: 'Failed to upload header picture' });
-                }
-                console.log('Header Picture uploaded successfully:', data);
-                headerPicUrl = data.Location; // Update headerPicUrl with S3 URL
-                resolve();
-            });
-        })
-        .catch(error => {
-            console.error('Error uploading header picture to S3:', error);
-            return res.status(500).json({ error: 'Failed to upload header picture to S3' });
-        });
-    }
-
-    // Update user information in the database
-    const firstName = req.body['first-name'];
-    const lastName = req.body['last-name'];
-    const country = req.body.country;
-
-    // Update user information in the database
-    db.query('UPDATE users SET profile_pic = ?, profilepic_key = ?, header_pic = ?, headerpic_key = ?, first_name = ?, last_name = ?, country = ? WHERE user_id = ?',
-        [profilePicUrl, profilePicKey, headerPicUrl, headerPicKey, firstName, lastName, country, req.user.userId],
-        (err, result) => {
+        s3.upload(uploadParams, (err, data) => {
             if (err) {
-                console.error('Error updating user information in database:', err);
-                return res.status(500).json({ error: 'Failed to update user information' });
+                console.error('Error uploading image:', err);
+                return res.status(500).json({ error: 'Failed to upload image' });
             }
 
-            // Respond with success message and updated profile picture and header picture URLs
-            res.status(200).json({
-                message: 'Profile picture and header picture updated successfully',
-                profilePicUrl,
-                headerPicUrl
-            });
+            imageUrl = data.Location;
+            savePostToDynamoDB(userId, username, content, imageUrl, res);
         });
+    } else {
+        savePostToDynamoDB(userId, username, content, imageUrl, res);
+    }
 });
+
+function savePostToDynamoDB(userId, username, content, imageUrl, res) {
+    const postId = crypto.randomBytes(16).toString('hex');
+    const timestamp = new Date().toISOString();
+
+    const params = {
+        TableName: 'cloudhive-postdb',
+        Item: {
+            postId: postId,
+            userId: userId,
+            username: username,
+            content: content,
+            imageUrl: imageUrl,
+            timestamp: timestamp
+        }
+    };
+
+    docClient.put(params, (err, data) => {
+        if (err) {
+            console.error('Error saving post to DynamoDB:', err);
+            return res.status(500).json({ error: 'Failed to save post' });
+        }
+
+        res.status(201).json({ message: 'Post created successfully' });
+    });
+}
 
 // Start server
 app.listen(port, () => {

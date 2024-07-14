@@ -43,7 +43,7 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item hive-nav-btn">
-                    <a class="nav-link" href="#">Hive <span class="sr-only">(current)</span></a>
+                    <a class="nav-link" href="/hive">Hive <span class="sr-only">(current)</span></a>
                 </li>
                 <li class="nav-item hive-nav-btn">
                     <a class="nav-link" href="#">Friends</a>
@@ -92,77 +92,6 @@
             </div>
         </div>
 
-        <!-- Edit Profile Modal -->
-        <div class="modal fade" id="editProfileModal" tabindex="-1" role="dialog" aria-labelledby="editProfileModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <form id="editProfileForm" enctype="multipart/form-data">
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label for="firstName">First Name</label>
-                                <input type="text" class="form-control" id="firstName" name="firstName" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="lastName">Last Name</label>
-                                <input type="text" class="form-control" id="lastName" name="lastName" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="username">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="email">Email</label>
-                                <input type="email" class="form-control" id="email" name="email" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="profilePicture">Profile Picture</label>
-                                <input type="file" class="form-control-file" id="profilePicture" name="profilePicture" accept="image/*">
-                                <img id="profilePicturePreview" src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile Picture" class="img-fluid mt-2" style="max-height: 200px;">
-                            </div>
-                            <div class="form-group">
-                                <label for="profileHeader">Profile Header Image</label>
-                                <input type="file" class="form-control-file" id="profileHeader" name="profileHeader" accept="image/*">
-                                <img id="profileHeaderPreview" src="<%= user.profile_header_url || '../assets/default-profile-header.jpg' %>" alt="Profile Header Image" class="img-fluid mt-2" style="max-height: 200px;">
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                            <button type="submit" class="btn btn-primary">Save Changes</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Cropper Modal for Profile Picture -->
-        <div class="modal fade" id="cropperModal" tabindex="-1" role="dialog" aria-labelledby="cropperModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="cropperModalLabel">Crop Image</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="image-container">
-                            <img id="cropperImage" src="" alt="Crop Image" class="img-fluid">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="cropImageBtn">Crop Image</button>
-                    </div>
-                </div>
-            </div>
-        </div> 
-
         <% if (loggedInUser.username === user.username) { %>
         <div class="row profile-user-post align-items-center">
             <div class="col"></div>
@@ -179,6 +108,37 @@
             <div class="col"></div>
         </div>
         <% } %>
+
+        <!-- Modal HTML -->
+        <div class="modal fade" id="writePostModal" tabindex="-1" aria-labelledby="writePostModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="writePostModalLabel">Write a Post</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="writePostForm">
+                            <div class="form-group">
+                                <textarea class="form-control" id="postContent" rows="3" placeholder="What's on your mind?"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <button type="button" id="attachImageButton" class="btn btn-secondary">Attach Image</button>
+                                <input type="file" id="postImage" class="form-control-file" style="display: none;">
+                            </div>
+                            <img id="imagePreview" src="#" alt="Image Preview" style="display: none; max-width: 100%;">
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" id="submitPostButton" class="btn btn-primary">Post</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <div class="row hive-feed-area">
             <!-- Post Template -->
