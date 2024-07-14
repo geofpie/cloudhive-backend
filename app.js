@@ -372,22 +372,13 @@ app.post('/api/posts', (req, res) => {
     });
 });
 
-app.post('/api/update_profile', verifyToken, 
-    upload.single('profilePic'), // Middleware for profilePic field
-    upload.single('headerPic'),  // Middleware for headerPic field
-    (req, res) => {
-        // Handle errors if no files were uploaded
-        if (!req.file || !req.file.buffer || !req.file.originalname) {
-            console.log('No profilePic file uploaded');
-            return res.status(400).json({ error: 'No profilePic file uploaded' });
-        }
+app.post('/api/update_profile', verifyToken, upload.single('profilePic'), upload.single('headerPic'), (req, res) => {
+    // Handle errors if no files were uploaded
+    if (!req.file || !req.file.buffer || !req.file.originalname) {
+        console.log('No files uploaded');
+        return res.status(400).json({ error: 'No files uploaded' });
+    }
 
-        if (!req.file2 || !req.file2.buffer || !req.file2.originalname) {
-            console.log('No headerPic file uploaded');
-            return res.status(400).json({ error: 'No headerPic file uploaded' });
-        headers=headers
-        }
-        
     const profilePicFile = req.file;
     const headerPicFile = req.file;
 
