@@ -17,6 +17,7 @@ const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 const crypto = require('crypto');
 const path = require('path');
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
 const app = express();
 const port = 8080;
@@ -334,6 +335,8 @@ app.get('/:username', verifyToken, (req, res) => {
         }
     });
 });
+
+
 
 // Start server
 app.listen(port, () => {
