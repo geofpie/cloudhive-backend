@@ -477,9 +477,9 @@ app.post('/api/get_posts', (req, res) => {
         TableName: TABLE_NAME,
         Limit: limit,
         ExclusiveStartKey: lastEvaluatedKey,
-        KeyConditionExpression: 'username = :user',
+        KeyConditionExpression: 'username = :user', // Adjust KeyConditionExpression as per your table schema
         ExpressionAttributeValues: {
-            ':user': username
+            ':user': { S: username }  // Assuming username is a string (S)
         }
     };
 
