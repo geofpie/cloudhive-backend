@@ -466,7 +466,7 @@ function savePostToDynamoDB(userId, username, content, imageUrl, res) {
     });
 }
 
-// POST endpoint to fetch posts
+// POST endpoint to fetch posts by username
 app.post('/api/get_posts', (req, res) => {
     const { limit, lastEvaluatedKey, username } = req.body;
 
@@ -475,14 +475,14 @@ app.post('/api/get_posts', (req, res) => {
         TableName: TABLE_NAME,
         Limit: limit,
         ExclusiveStartKey: lastEvaluatedKey,
-        FilterExpression: 'username = :user',
+        KeyConditionExpression: 'username = :user',
         ExpressionAttributeValues: {
             ':user': username
         }
     };
 
     // Perform DynamoDB query
-    dynamoDB.scan(params, (err, data) => {
+    dynamoDB.query(params, (err, data) => {
         if (err) {
             console.error('Error fetching posts from DynamoDB:', err);
             return res.status(500).json({ error: 'Error fetching posts from DynamoDB' });
@@ -490,8 +490,6 @@ app.post('/api/get_posts', (req, res) => {
         res.json(data);
     });
 });
-
-
 
 // Start server
 app.listen(port, () => {
