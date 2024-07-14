@@ -468,6 +468,9 @@ function savePostToDynamoDB(userId, username, content, imageUrl, res) {
 
 // Function to fetch posts
 app.post('/api/get_posts', (req, res) => {
+    // Retrieve posts from DynamoDB or any other storage
+    // Assuming posts is an array of post objects retrieved from your database
+
     // Function to generate pre-signed URLs for images
     const generatePresignedUrl = async (key) => {
         try {
