@@ -28,6 +28,7 @@ const s3 = new AWS.S3({
     signatureVersion: 'v4'
 });
 
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -368,6 +369,132 @@ app.post('/api/posts', (req, res) => {
         }
 
         res.status(201).json({ postId });
+    });
+});
+
+app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic', maxCount: 1 }, { name: 'headerPic', maxCount: 1 }]), (req, res) => {
+    // Handle errors if no files were uploaded
+    if (!req.files || !req.files.profilePic || !req.files.headerPic) {
+        console.log('No files uploaded');
+        return res.status(400).json({ error: 'No files uploaded' });
+    }
+
+    const profilePicFile = req.files.profilePic[0];
+    const headerPicFile = req.files.headerPic[0];
+
+    // Log the received file details
+    console.log('Profile Picture File received:', profilePicFile);
+    console.log('Header Picture File received:', headerPicFile);
+
+    // Determine the file extensions
+    const profilePicMimeType = profilePicFile.mimetype;
+    const headerPicMimeType = headerPicFile.mimetype;
+
+    let profilePicExtension = '';
+    let headerPicExtension = '';
+
+    switch (profilePicMimeType) {
+        case 'image/jpeg':
+            profilePicExtension = 'jpg';
+            break;
+        case 'image/png':
+            profilePicExtension = 'png';
+            break;
+        case 'image/gif':
+            profilePicExtension = 'gif';
+            break;
+        default:
+            return res.status(400).json({ error: 'Unsupported profile picture file type' });
+    }
+
+    switch (headerPicMimeType) {
+        case 'image/jpeg':
+            headerPicExtension = 'jpg';
+            break;
+        case 'image/png':
+            headerPicExtension = 'png';
+            break;
+        case 'image/gif':
+            headerPicExtension = 'gif';
+            break;
+        default:
+            return res.status(400).json({ error: 'Unsupported header picture file type' });
+    }
+
+    // Generate random strings for file keys
+    const randomStringProfilePic = crypto.randomBytes(6).toString('hex');
+    const randomStringHeaderPic = crypto.randomBytes(6).toString('hex');
+
+    const profilePicKey = `profile-pics/${req.user.userId}-${req.user.username}-${randomStringProfilePic}.${profilePicExtension}`;
+    const headerPicKey = `header-pics/${req.user.userId}-${req.user.username}-${randomStringHeaderPic}.${headerPicExtension}`;
+
+    // Create S3 upload parameters for profile picture
+    const profilePicParams = {
+        Bucket: 'cloudhive-userdata',
+        Key: profilePicKey,
+        Body: profilePicFile.buffer,
+        ContentType: profilePicFile.mimetype,
+        ACL: 'private'
+    };
+
+    // Create S3 upload parameters for header picture
+    const headerPicParams = {
+        Bucket: 'cloudhive-userdata',
+        Key: headerPicKey,
+        Body: headerPicFile.buffer,
+        ContentType: headerPicFile.mimetype,
+        ACL: 'private'
+    };
+
+    // Upload the files to S3 concurrently
+    Promise.all([
+        new Promise((resolve, reject) => {
+            s3.upload(profilePicParams, (err, data) => {
+                if (err) {
+                    console.error('Error uploading profile picture to S3:', err);
+                    return reject({ error: 'Failed to upload profile picture' });
+                }
+                console.log('Profile Picture uploaded successfully:', data);
+                resolve(data.Location); // Resolve with S3 URL
+            });
+        }),
+        new Promise((resolve, reject) => {
+            s3.upload(headerPicParams, (err, data) => {
+                if (err) {
+                    console.error('Error uploading header picture to S3:', err);
+                    return reject({ error: 'Failed to upload header picture' });
+                }
+                console.log('Header Picture uploaded successfully:', data);
+                resolve(data.Location); // Resolve with S3 URL
+            });
+        })
+    ])
+    .then(([profilePicUrl, headerPicUrl]) => {
+        // Update the user's profile picture URL, header picture URL, and additional fields in the database
+        const firstName = req.body['first-name'];
+        const lastName = req.body['last-name'];
+        const country = req.body.country;
+
+        // Update user information in the database
+        db.query('UPDATE users SET profile_pic = ?, profilepic_key = ?, header_pic = ?, headerpic_key = ?, first_name = ?, last_name = ?, country = ? WHERE user_id = ?',
+            [profilePicUrl, profilePicKey, headerPicUrl, headerPicKey, firstName, lastName, country, req.user.userId],
+            (err, result) => {
+                if (err) {
+                    console.error('Error updating user information in database:', err);
+                    return res.status(500).json({ error: 'Failed to update user information' });
+                }
+
+                // Respond with success message and updated profile picture and header picture URLs
+                res.status(200).json({
+                    message: 'Profile picture and header picture updated successfully',
+                    profilePicUrl,
+                    headerPicUrl
+                });
+            });
+    })
+    .catch(error => {
+        console.error('Error in S3 file uploads:', error);
+        return res.status(500).json({ error: 'Failed to upload one or more files to S3' });
     });
 });
 
