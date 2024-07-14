@@ -349,7 +349,7 @@ app.post('/api/posts', (req, res) => {
     const createdAt = new Date().toISOString();
 
     const params = {
-        TableName: 'Posts',
+        TableName: 'cloudhive-postdb',
         Item: {
             postId,
             userId,
