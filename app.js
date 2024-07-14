@@ -29,6 +29,8 @@ const s3 = new AWS.S3({
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+AWS.config.update({ region: 'us-east-1' });
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
