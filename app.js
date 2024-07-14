@@ -100,12 +100,12 @@ const verifyToken = (req, res, next) => {
     const token = req.cookies.token;
 
     if (!token) {
-        return res.status(401).json({ redirect: '/onboarding' });
+        return res.status(401).json({ redirect: '/' });
     }
 
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(401).json({ redirect: '/onboarding' });
+            return res.status(401).json({ redirect: '/' });
         }
 
         req.user = decoded; // Attach the decoded token to the request object
