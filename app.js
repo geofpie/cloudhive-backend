@@ -372,7 +372,7 @@ app.post('/api/posts', (req, res) => {
     });
 });
 
-app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic', maxCount: 1 }, { name: 'headerPic', maxCount: 1 }]), (req, res) => {
+app.post('/api/update_profile', verifyToken, upload.single('profilePic'), upload.single('headerPic'), (req, res) => {
     // Handle errors if no files were uploaded
     if (!req.files || !req.files.profilePic || !req.files.headerPic) {
         console.log('No files uploaded');
