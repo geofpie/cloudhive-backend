@@ -70,14 +70,21 @@
                 <div class="profile-user-name alig">
                     <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="header-profile-pic shadow">
                     <h3 class="profile-user-name-elem"><%= user.first_name %> <%= user.last_name %></h3>
-                    <p class="profile-user-country" id="profile-user-country"><%= user.country %></p>
+                    <p class="profile-user-country" id="profile-user-country">@<%= user.username %></p>
                 </div>
                 <div class="profile-user-stats mt-auto align-bottom">
                     <div class="col">
                         <p class="profile-stat profile-posts-count" id="profile-posts-count"><strong>NaN</strong> posts</p>
                         <p class="profile-stat profile-user-follower-count" id="profile-user-follower-count"><strong>NaN</strong> followers</p>
                         <p class="profile-stat profile-user-following-count" id="profile-user-following-count"><strong>NaN</strong> following</p>
-                        <button class="profile-stat hive-follow-user"><i class="fa fa-user-plus"></i>Follow</button>
+                        <% if (loggedInUser.username === user.username) { %>
+                            <!-- Show edit profile button -->
+                            <button class="profile-stat hive-user-action"><i class="fa fa-edit"></i>Edit Profile</button>
+                        <% } else { %>
+                            <!-- Show follow button -->
+                            <button class="profile-stat hive-user-action"><i class="fa fa-user-plus"></i>Follow</button>
+                        <% } %>
+                        <button class="profile-stat hive-user-action"><i class="fa fa-user-plus"></i>Follow</button>
                     </div>
                 </div>
             </div>

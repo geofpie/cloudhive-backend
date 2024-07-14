@@ -325,12 +325,12 @@ app.get('/:username', verifyToken, (req, res) => {
                 userInfo.profile_picture_url = url;
 
                 console.log(`Rendering profile page for ${username}`);
-                res.render('profile', { user: userInfo });
+                res.render('profile', { user: userInfo, loggedInUser: req.user });
             });
         } else {
             // Render profile.html with user data
             console.log(`Rendering profile page for ${username}`);
-            res.render('profile', { user: userInfo });
+            res.render('profile', { user: userInfo, loggedInUser: req.user });
         }
     });
 });
