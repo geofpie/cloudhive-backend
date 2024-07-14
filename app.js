@@ -504,6 +504,27 @@ app.post('/api/get_posts', (req, res) => {
     });
 });
 
+app.get('/api/get_user_id', async (req, res) => {
+    const { username } = req.query;
+
+    try {
+        // Replace with your actual SQL query to fetch user_id from RDS based on username
+        // Example assuming you have a 'users' table with 'username' and 'user_id' columns
+        const query = `SELECT user_id FROM users WHERE username = ?`;
+        const result = await pool.query(query, [username]); // Assuming you have a database connection pool (e.g., 'pool.query' for MySQL)
+
+        if (result.length > 0) {
+            const userId = result[0].user_id;
+            res.json({ userId });
+        } else {
+            res.status(404).json({ error: 'User not found' });
+        }
+    } catch (error) {
+        console.error('Error fetching user_id:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
