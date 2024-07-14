@@ -14,7 +14,6 @@ const cookieParser = require('cookie-parser');
 const AWS = require('aws-sdk'); // AWS SDK for S3 operations
 const fs = require('fs'); // File system module
 const multer = require('multer');
-const upload = multer({ storage: multer.memoryStorage() });
 const crypto = require('crypto');
 const path = require('path');
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
@@ -28,10 +27,19 @@ const s3 = new AWS.S3({
     signatureVersion: 'v4'
 });
 
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10 MB (adjust as necessary)
+    },
+});
+
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
