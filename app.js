@@ -374,13 +374,13 @@ app.post('/api/posts', (req, res) => {
 
 app.post('/api/update_profile', verifyToken, upload.single('profilePic'), upload.single('headerPic'), (req, res) => {
     // Handle errors if no files were uploaded
-    if (!req.files || !req.files.profilePic || !req.files.headerPic) {
+    if (!req.file || !req.file.buffer || !req.file.originalname) {
         console.log('No files uploaded');
         return res.status(400).json({ error: 'No files uploaded' });
     }
 
-    const profilePicFile = req.files.profilePic[0];
-    const headerPicFile = req.files.headerPic[0];
+    const profilePicFile = req.file;
+    const headerPicFile = req.file;
 
     // Log the received file details
     console.log('Profile Picture File received:', profilePicFile);
@@ -497,7 +497,6 @@ app.post('/api/update_profile', verifyToken, upload.single('profilePic'), upload
         return res.status(500).json({ error: 'Failed to upload one or more files to S3' });
     });
 });
-
 
 // Start server
 app.listen(port, () => {
