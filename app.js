@@ -325,15 +325,14 @@ app.get('/:username', verifyToken, (req, res) => {
                 userInfo.profile_picture_url = url;
 
                 // Render profile.html with user data
-                res.render('profile.html', { user: userInfo });
+                res.render('profile', { user: userInfo });
             });
         } else {
             // Render profile.html with user data
-            res.render('profile.html', { user: userInfo });
+            res.render('profile', { user: userInfo });
         }
     });
 });
-
 
 // Start server
 app.listen(port, () => {
