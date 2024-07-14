@@ -476,7 +476,7 @@ app.post('/api/get_posts', (req, res) => {
         ExclusiveStartKey: lastEvaluatedKey
     };
 
-    dynamoDb.scan(params, (err, data) => {
+    dynamoDB.scan(params, (err, data) => {
         if (err) {
             console.error('Error fetching posts from DynamoDB:', err);
             return res.status(500).json({ error: 'Error fetching posts from DynamoDB' });
