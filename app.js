@@ -384,7 +384,7 @@ app.post('/api/create_post', verifyToken, upload.single('postImage'), (req, res)
     if (req.file) {
         const file = req.file;
         const fileExtension = file.mimetype.split('/')[1];
-        const fileKey = `postcontent/${userId}-${crypto.randomBytes(6).toString('hex')}.${fileExtension}`;
+        const fileKey = `posts/${userId}-${crypto.randomBytes(6).toString('hex')}.${fileExtension}`;
 
         const uploadParams = {
             Bucket: 'cloudhive-userdata',
@@ -424,7 +424,7 @@ function savePostToDynamoDB(userId, username, content, imageUrl, res) {
         }
     };
 
-    docClient.put(params, (err, data) => {
+    dynamoDB.put(params, (err, data) => {
         if (err) {
             console.error('Error saving post to DynamoDB:', err);
             return res.status(500).json({ error: 'Failed to save post' });
