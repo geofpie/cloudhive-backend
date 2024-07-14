@@ -29,6 +29,8 @@ const s3 = new AWS.S3({
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+const TABLE_NAME = 'cloudhive-postdb';
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -439,7 +441,7 @@ function savePostToDynamoDB(userId, username, content, imageUrl, res) {
     const timestamp = new Date().toISOString();
 
     const params = {
-        TableName: 'cloudhive-postdb',
+        TableName: TABLE_NAME,
         Item: {
             postId: postId,
             userId: userId,
@@ -459,6 +461,26 @@ function savePostToDynamoDB(userId, username, content, imageUrl, res) {
         res.status(201).json({ message: 'Post created successfully' });
     });
 }
+
+// POST endpoint to fetch posts
+app.post('/api/get_posts', (req, res) => {
+    const { limit, lastEvaluatedKey } = req.body;
+
+    const params = {
+        TableName: TABLE_NAME,
+        Limit: limit,
+        ExclusiveStartKey: lastEvaluatedKey
+    };
+
+    dynamoDb.scan(params, (err, data) => {
+        if (err) {
+            console.error('Error fetching posts from DynamoDB:', err);
+            return res.status(500).json({ error: 'Error fetching posts from DynamoDB' });
+        }
+        res.json(data);
+    });
+});
+
 
 // Start server
 app.listen(port, () => {
