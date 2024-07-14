@@ -93,7 +93,7 @@
         <div class="row profile-user-post align-items-center">
             <div class="col"></div>
             <div class="col-md-5 hive-post-action-bar shadow-sm">
-                <img src="../assets/default-profile.jpg" alt="Profile" class="navbar-profile-pic">
+                <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="navbar-profile-pic">
                 <button class="share-post-button" id="write-post">Say or share something</button>
                 <button class="write-post-btn" id="write-post">
                     <i class="fa fa-pen postbtn-icon"></i>Write Post
@@ -105,34 +105,6 @@
             <div class="col"></div>
         </div>
         <% } %>
-
-        <!-- Compose Modal -->
-        <div class="modal fade" id="composePostModal" tabindex="-1" role="dialog" aria-labelledby="composePostModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="composePostModalLabel">Compose Post</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="composePostForm">
-                            <div class="form-group">
-                                <textarea class="form-control" id="postContent" placeholder="What's on your mind?"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <input type="file" id="postImage" accept="image/*">
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary" id="submitPost">Post</button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <div class="row hive-feed-area">
             <!-- Post Template -->
