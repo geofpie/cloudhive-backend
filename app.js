@@ -472,6 +472,12 @@ app.post('/api/get_posts', (req, res) => {
 
     console.log('Received request to fetch posts. Username:', username);
 
+    // Check if username is provided
+    if (!username) {
+        console.error('Username is missing in request body.');
+        return res.status(400).json({ error: 'Username is required.' });
+    }
+
     // Define DynamoDB query parameters
     const params = {
         TableName: TABLE_NAME,
