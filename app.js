@@ -294,6 +294,7 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
 // Endpoint to fetch and render user profile page
 app.get('/:username', verifyToken, (req, res) => {
     const username = req.params.username;
+    console.log(`Fetching profile for username: ${username}`);
 
     // Fetch user information from database
     db.query('SELECT * FROM users WHERE username = ?', [username], (err, results) => {
@@ -303,18 +304,17 @@ app.get('/:username', verifyToken, (req, res) => {
         }
 
         if (results.length === 0) {
+            console.log(`User ${username} not found`);
             return res.status(404).send('User not found');
         }
 
         const userInfo = results[0];
 
-        // Generate presigned URL for profile picture if exists
-        const profilePictureKey = userInfo.profilepic_key;
-        if (profilePictureKey) {
+        if (userInfo.profilepic_key) {
             const params = {
                 Bucket: 'cloudhive-userdata',
-                Key: profilePictureKey,
-                Expires: 60 * 60 // 1 hour expiration
+                Key: userInfo.profilepic_key,
+                Expires: 3600 // 1 hour expiration (in seconds)
             };
             s3.getSignedUrl('getObject', params, (err, url) => {
                 if (err) {
@@ -324,11 +324,12 @@ app.get('/:username', verifyToken, (req, res) => {
 
                 userInfo.profile_picture_url = url;
 
-                // Render profile.html with user data
+                console.log(`Rendering profile page for ${username}`);
                 res.render('profile', { user: userInfo });
             });
         } else {
             // Render profile.html with user data
+            console.log(`Rendering profile page for ${username}`);
             res.render('profile', { user: userInfo });
         }
     });
