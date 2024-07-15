@@ -507,12 +507,12 @@ app.post('/api/get_posts', (req, res) => {
 // Endpoint to initiate a follow request
 app.get('/api/follow/:username', verifyToken, (req, res) => {
     // Ensure req.user is correctly populated after authentication
-    if (!req.user || !req.user.user_id || !req.user.username) {
+    if (!req.user || !req.user.userId || !req.user.username) {
         console.error('Error: Invalid user information in req.user');
         return res.status(401).send('Unauthorized');
     }
 
-    const followerId = req.user.user_id;
+    const followerId = req.user.userId;
     const followerUsername = req.user.username;
     const followedUsername = req.params.username;
 
