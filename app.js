@@ -542,7 +542,7 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
             SELECT status FROM follows
             WHERE follower_id = ? AND followed_id = ?
         `;
-        db.query(checkFollowQuery, [followerId, profileUser.id], (err, results) => {
+        db.query(checkFollowQuery, [followerId, profileUser.user_id], (err, results) => {
             if (err) {
                 console.error('Error checking follow request:', err);
                 return res.status(500).send('Internal Server Error');
@@ -564,7 +564,7 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
                 INSERT INTO follows (follower_id, followed_id, status)
                 VALUES (?, ?, 'requested')
             `;
-            db.query(insertFollowQuery, [followerId, profileUser.id], (err, result) => {
+            db.query(insertFollowQuery, [followerId, profileUser.user_id], (err, result) => {
                 if (err) {
                     console.error('Error inserting follow request:', err);
                     return res.status(500).send('Error inserting follow request');
