@@ -539,7 +539,7 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
 
         // Insert follow request into following_table
         const insertFollowQuery = `
-            INSERT INTO following_table (follower_id, followed_id, status)
+            INSERT INTO follows (follower_id, followed_id, status)
             VALUES (?, ?, 'requested')
         `;
         db.query(insertFollowQuery, [followerId, profileUser.id], (err, result) => {
