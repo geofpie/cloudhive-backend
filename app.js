@@ -504,6 +504,69 @@ app.post('/api/get_posts', (req, res) => {
     });
 });
 
+app.get('/api/follow/:username', (req, res) => {
+    const followerUsername = req.session.username;  // Assuming you store the logged-in username in the session
+    const followedUsername = req.params.username;
+
+    if (followerUsername === followedUsername) {
+        return res.status(400).send('You cannot follow yourself');
+    }
+
+    // Get user IDs based on usernames
+    const getUserIdsQuery = `
+        SELECT id, username FROM users WHERE username IN (?, ?)
+    `;
+
+    connection.query(getUserIdsQuery, [followerUsername, followedUsername], (err, results) => {
+        if (err) return res.status(500).send('Database error');
+
+        const followerId = results.find(user => user.username === followerUsername).id;
+        const followedId = results.find(user => user.username === followedUsername).id;
+
+        // Insert follow request
+        const insertFollowRequestQuery = `
+            INSERT INTO follows (follower_id, followed_id, status)
+            VALUES (?, ?, 'requested')
+            ON DUPLICATE KEY UPDATE status = 'requested'
+        `;
+
+        connection.query(insertFollowRequestQuery, [followerId, followedId], (err, results) => {
+            if (err) return res.status(500).send('Database error');
+            res.send('Follow request sent');
+        });
+    });
+});
+
+app.get('/api/approve-follow/:username', (req, res) => {
+    const requesteeUsername = req.session.username;  // Assuming you store the logged-in username in the session
+    const requesterUsername = req.params.username;
+
+    // Get user IDs based on usernames
+    const getUserIdsQuery = `
+        SELECT id, username FROM users WHERE username IN (?, ?)
+    `;
+
+    connection.query(getUserIdsQuery, [requesterUsername, requesteeUsername], (err, results) => {
+        if (err) return res.status(500).send('Database error');
+
+        const requesterId = results.find(user => user.username === requesterUsername).id;
+        const requesteeId = results.find(user => user.username === requesteeUsername).id;
+
+        // Update follow request status to 'following'
+        const updateFollowRequestQuery = `
+            UPDATE follows
+            SET status = 'following'
+            WHERE follower_id = ? AND followed_id = ? AND status = 'requested'
+        `;
+
+        connection.query(updateFollowRequestQuery, [requesterId, requesteeId], (err, results) => {
+            if (err) return res.status(500).send('Database error');
+            res.send('Follow request approved');
+        });
+    });
+});
+
+
 // Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);

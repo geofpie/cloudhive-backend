@@ -67,7 +67,7 @@
         </div>
     </nav>
     <!-- End Nav -->
-     <div class="container-fluid">
+    <div class="container-fluid">
         <div class="row profile-fullwidth-header" style="background-color: black;">
             <div class="col d-flex">
                 <div class="profile-user-name alig">
@@ -84,13 +84,30 @@
                             <!-- Show edit profile button -->
                             <button class="profile-stat hive-user-action"><i class="fa fa-edit"></i>Edit Profile</button>
                         <% } else { %>
-                            <!-- Show follow button -->
-                            <button class="profile-stat hive-user-action"><i class="fa fa-user-plus"></i>Follow</button>
+                            <!-- Show follow button or approval button based on status -->
+                            <% if (user.followStatus === 'following') { %>
+                                <button class="profile-stat hive-user-action" disabled><i class="fa fa-user-check"></i>Following</button>
+                            <% } else if (user.followStatus === 'requested') { %>
+                                <button class="profile-stat hive-user-action" disabled><i class="fa fa-user-clock"></i>Requested</button>
+                            <% } else { %>
+                                <button class="profile-stat hive-user-action" onclick="sendFollowRequest('<%= user.username %>')"><i class="fa fa-user-plus"></i>Follow</button>
+                            <% } %>
                         <% } %>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+    
+    <script>
+        function sendFollowRequest(username) {
+            fetch(`/api/follow/${username}`)
+                .then(response => response.text())
+                .then(data => alert(data))
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+    
 
         <% if (loggedInUser.username === user.username) { %>
         <div class="row profile-user-post align-items-center">
