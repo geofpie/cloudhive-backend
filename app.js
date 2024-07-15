@@ -521,7 +521,7 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
     console.log(`Followed Username: ${followedUsername}`);
 
     // Fetch profile user information from database
-    const getProfileUserQuery = 'SELECT user_id, username FROM users WHERE username = ?';
+    const getProfileUserQuery = 'SELECT id, username FROM users WHERE username = ?';
     db.query(getProfileUserQuery, [followedUsername], (err, results) => {
         if (err) {
             console.error('Error fetching profile user information:', err);
@@ -537,19 +537,42 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
 
         console.log('Profile User:', profileUser);
 
-        // Insert follow request into following_table
-        const insertFollowQuery = `
-            INSERT INTO follows (follower_id, followed_id, status)
-            VALUES (?, ?, 'requested')
+        // Check if follow request already exists
+        const checkFollowQuery = `
+            SELECT status FROM follows
+            WHERE follower_id = ? AND followed_id = ?
         `;
-        db.query(insertFollowQuery, [followerId, profileUser.user_id], (err, result) => {
+        db.query(checkFollowQuery, [followerId, profileUser.id], (err, results) => {
             if (err) {
-                console.error('Error inserting follow request:', err);
-                return res.status(500).send('Error inserting follow request');
+                console.error('Error checking follow request:', err);
+                return res.status(500).send('Internal Server Error');
             }
 
-            console.log(`Follow request from ${followerUsername} to ${followedUsername} initiated successfully`);
-            res.status(200).send('Follow request initiated');
+            if (results.length > 0) {
+                const existingStatus = results[0].status;
+                if (existingStatus === 'requested') {
+                    console.log(`Follow request from ${followerUsername} to ${followedUsername} already pending`);
+                    return res.status(400).send('Follow request already pending');
+                } else if (existingStatus === 'following') {
+                    console.log(`User ${followerUsername} is already following ${followedUsername}`);
+                    return res.status(400).send('Already following');
+                }
+            }
+
+            // Insert follow request into follows table
+            const insertFollowQuery = `
+                INSERT INTO follows (follower_id, followed_id, status)
+                VALUES (?, ?, 'requested')
+            `;
+            db.query(insertFollowQuery, [followerId, profileUser.id], (err, result) => {
+                if (err) {
+                    console.error('Error inserting follow request:', err);
+                    return res.status(500).send('Error inserting follow request');
+                }
+
+                console.log(`Follow request from ${followerUsername} to ${followedUsername} initiated successfully`);
+                res.status(200).send('Follow request initiated');
+            });
         });
     });
 });
@@ -560,18 +583,18 @@ app.get('/api/approve-follow/:username', (req, res) => {
 
     // Get user IDs based on usernames
     const getUserIdsQuery = `
-        SELECT id, username FROM users WHERE username IN (?, ?)
+        SELECT user_id, username FROM users WHERE username IN (?, ?)
     `;
 
     connection.query(getUserIdsQuery, [requesterUsername, requesteeUsername], (err, results) => {
         if (err) return res.status(500).send('Database error');
 
-        const requesterId = results.find(user => user.username === requesterUsername).id;
-        const requesteeId = results.find(user => user.username === requesteeUsername).id;
+        const requesterId = results.find(user => user.username === requesterUsername).user_id;
+        const requesteeId = results.find(user => user.username === requesteeUsername).user_id;
 
         // Update follow request status to 'following'
         const updateFollowRequestQuery = `
-            UPDATE following_table
+            UPDATE follows
             SET status = 'following'
             WHERE follower_id = ? AND followed_id = ? AND status = 'requested'
         `;
