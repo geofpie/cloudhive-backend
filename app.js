@@ -512,7 +512,7 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
         return res.status(401).send('Unauthorized');
     }
 
-    const followerId = req.user.id;
+    const followerId = req.user.user_id;
     const followerUsername = req.user.username;
     const followedUsername = req.params.username;
 
