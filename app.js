@@ -506,12 +506,18 @@ app.post('/api/get_posts', (req, res) => {
 
 // Endpoint to initiate a follow request
 app.get('/api/follow/:username', verifyToken, (req, res) => {
-    const followerId = req.user.id; // Assuming req.user contains logged-in user's information
-    const followerUsername = req.user.username; // Assuming req.user contains logged-in user's information
+    // Ensure req.user is correctly populated after authentication
+    if (!req.user || !req.user.id || !req.user.username) {
+        console.error('Error: Invalid user information in req.user');
+        return res.status(401).send('Unauthorized');
+    }
+
+    const followerId = req.user.id;
+    const followerUsername = req.user.username;
     const followedUsername = req.params.username;
 
     // Fetch profile user information from database
-    const getProfileUserQuery = 'SELECT user_id, username FROM users WHERE username = ?';
+    const getProfileUserQuery = 'SELECT id, username FROM users WHERE username = ?';
     db.query(getProfileUserQuery, [followedUsername], (err, results) => {
         if (err) {
             console.error('Error fetching profile user information:', err);
@@ -527,7 +533,7 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
 
         // Insert follow request into following_table
         const insertFollowQuery = `
-            INSERT INTO follows (follower_id, followed_id, status)
+            INSERT INTO following_table (follower_id, followed_id, status)
             VALUES (?, ?, 'requested')
         `;
         db.query(insertFollowQuery, [followerId, profileUser.id], (err, result) => {
