@@ -98,16 +98,6 @@
             </div>
         </div>
     </div>
-    
-    <script>
-        function sendFollowRequest(username) {
-            fetch(`/api/follow/${username}`)
-                .then(response => response.text())
-                .then(data => alert(data))
-                .catch(error => console.error('Error:', error));
-        }
-    </script>
-    
 
         <% if (loggedInUser.username === user.username) { %>
         <div class="row profile-user-post align-items-center">
