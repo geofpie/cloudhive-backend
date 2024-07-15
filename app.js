@@ -507,12 +507,12 @@ app.post('/api/get_posts', (req, res) => {
 // Endpoint to initiate a follow request
 app.get('/api/follow/:username', verifyToken, (req, res) => {
     // Ensure req.user is correctly populated after authentication
-    if (!req.user || !req.user.id || !req.user.username) {
+    if (!req.user || !req.user.userId || !req.user.username) {
         console.error('Error: Invalid user information in req.user');
         return res.status(401).send('Unauthorized');
     }
 
-    const followerId = req.user.id;
+    const followerId = req.user.userId;
     const followerUsername = req.user.username;
     const followedUsername = req.params.username;
 
@@ -521,7 +521,7 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
     console.log(`Followed Username: ${followedUsername}`);
 
     // Fetch profile user information from database
-    const getProfileUserQuery = 'SELECT id, username FROM users WHERE username = ?';
+    const getProfileUserQuery = 'SELECT user_id, username FROM users WHERE username = ?';
     db.query(getProfileUserQuery, [followedUsername], (err, results) => {
         if (err) {
             console.error('Error fetching profile user information:', err);
