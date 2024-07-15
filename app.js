@@ -504,35 +504,40 @@ app.post('/api/get_posts', (req, res) => {
     });
 });
 
-app.get('/api/follow/:username', (req, res) => {
-    const followerUsername = req.session.username;  // Assuming you store the logged-in username in the session
+// Endpoint to initiate a follow request
+app.get('/api/follow/:username', verifyToken, (req, res) => {
+    const followerId = req.user.id; // Assuming req.user contains logged-in user's information
+    const followerUsername = req.user.username; // Assuming req.user contains logged-in user's information
     const followedUsername = req.params.username;
 
-    if (followerUsername === followedUsername) {
-        return res.status(400).send('You cannot follow yourself');
-    }
+    // Fetch profile user information from database
+    const getProfileUserQuery = 'SELECT id, username FROM users WHERE username = ?';
+    db.query(getProfileUserQuery, [followedUsername], (err, results) => {
+        if (err) {
+            console.error('Error fetching profile user information:', err);
+            return res.status(500).send('Internal Server Error');
+        }
 
-    // Get user IDs based on usernames
-    const getUserIdsQuery = `
-        SELECT id, username FROM users WHERE username IN (?, ?)
-    `;
+        if (results.length === 0) {
+            console.log(`Profile user ${followedUsername} not found`);
+            return res.status(404).send('Profile user not found');
+        }
 
-    connection.query(getUserIdsQuery, [followerUsername, followedUsername], (err, results) => {
-        if (err) return res.status(500).send('Database error');
+        const profileUser = results[0];
 
-        const followerId = results.find(user => user.username === followerUsername).id;
-        const followedId = results.find(user => user.username === followedUsername).id;
-
-        // Insert follow request
-        const insertFollowRequestQuery = `
-            INSERT INTO follows (follower_id, followed_id, status)
+        // Insert follow request into following_table
+        const insertFollowQuery = `
+            INSERT INTO following_table (follower_id, followed_id, status)
             VALUES (?, ?, 'requested')
-            ON DUPLICATE KEY UPDATE status = 'requested'
         `;
+        db.query(insertFollowQuery, [followerId, profileUser.id], (err, result) => {
+            if (err) {
+                console.error('Error inserting follow request:', err);
+                return res.status(500).send('Error inserting follow request');
+            }
 
-        connection.query(insertFollowRequestQuery, [followerId, followedId], (err, results) => {
-            if (err) return res.status(500).send('Database error');
-            res.send('Follow request sent');
+            console.log(`Follow request from ${followerUsername} to ${followedUsername} initiated successfully`);
+            res.status(200).send('Follow request initiated');
         });
     });
 });
