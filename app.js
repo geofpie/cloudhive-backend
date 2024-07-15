@@ -320,28 +320,49 @@ app.get('/:username', verifyToken, (req, res) => {
 
         const userInfo = results[0];
 
-        if (userInfo.profilepic_key) {
-            const params = {
-                Bucket: 'cloudhive-userdata',
-                Key: userInfo.profilepic_key,
-                Expires: 3600 // 1 hour expiration (in seconds)
-            };
-            s3.getSignedUrl('getObject', params, (err, url) => {
-                if (err) {
-                    console.error('Error generating presigned URL:', err);
-                    return res.status(500).send('Internal Server Error');
-                }
+        // Fetch follow status from follows table
+        const followerId = req.user.userId; 
+        const followedId = userInfo.user_id;
 
-                userInfo.profile_picture_url = url;
+        const getFollowStatusQuery = `
+            SELECT status
+            FROM follows
+            WHERE follower_id = ? AND followed_id = ?
+        `;
+        db.query(getFollowStatusQuery, [followerId, followedId], (err, followResults) => {
+            if (err) {
+                console.error('Error fetching follow status:', err);
+                return res.status(500).send('Internal Server Error');
+            }
 
+            let followStatus = 'Follow'; // Default to Follow if no record found
+            if (followResults.length > 0) {
+                followStatus = followResults[0].status;
+            }
+
+            if (userInfo.profilepic_key) {
+                const params = {
+                    Bucket: 'cloudhive-userdata',
+                    Key: userInfo.profilepic_key,
+                    Expires: 3600 // 1 hour expiration (in seconds)
+                };
+                s3.getSignedUrl('getObject', params, (err, url) => {
+                    if (err) {
+                        console.error('Error generating presigned URL:', err);
+                        return res.status(500).send('Internal Server Error');
+                    }
+
+                    userInfo.profile_picture_url = url;
+
+                    console.log(`Rendering profile page for ${username}`);
+                    res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
+                });
+            } else {
+                // Render profile.html with user data
                 console.log(`Rendering profile page for ${username}`);
-                res.render('profile', { user: userInfo, loggedInUser: req.user });
-            });
-        } else {
-            // Render profile.html with user data
-            console.log(`Rendering profile page for ${username}`);
-            res.render('profile', { user: userInfo, loggedInUser: req.user });
-        }
+                res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
+            }
+        });
     });
 });
 
