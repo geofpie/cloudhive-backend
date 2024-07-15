@@ -521,7 +521,7 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
     console.log(`Followed Username: ${followedUsername}`);
 
     // Fetch profile user information from database
-    const getProfileUserQuery = 'SELECT id, username FROM users WHERE username = ?';
+    const getProfileUserQuery = 'SELECT user_id, username FROM users WHERE username = ?';
     db.query(getProfileUserQuery, [followedUsername], (err, results) => {
         if (err) {
             console.error('Error fetching profile user information:', err);
