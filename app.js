@@ -670,6 +670,78 @@ app.get('/api/follow-requests', verifyToken, (req, res) => {
     });
 });
 
+// Endpoint to accept a follow request
+app.post('/api/follow-requests/accept', verifyToken, (req, res) => {
+    const { username } = req.body;
+    const followedId = req.user.userId;
+
+    // Fetch the follower's user ID based on the username
+    const getFollowerIdQuery = 'SELECT user_id FROM users WHERE username = ?';
+    db.query(getFollowerIdQuery, [username], (err, results) => {
+        if (err) {
+            console.error('Error fetching follower user ID:', err);
+            return res.status(500).send('Internal Server Error');
+        }
+
+        if (results.length === 0) {
+            return res.status(404).send('Follower not found');
+        }
+
+        const followerId = results[0].user_id;
+
+        // Update the follow request status to 'accepted'
+        const acceptFollowQuery = `
+            UPDATE follows
+            SET status = 'accepted'
+            WHERE follower_id = ? AND followed_id = ? AND status = 'requested'
+        `;
+        db.query(acceptFollowQuery, [followerId, followedId], (err, result) => {
+            if (err) {
+                console.error('Error accepting follow request:', err);
+                return res.status(500).send('Internal Server Error');
+            }
+
+            res.status(200).send('Follow request accepted');
+        });
+    });
+});
+
+// Endpoint to deny a follow request
+app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
+    const { username } = req.body;
+    const followedId = req.user.userId;
+
+    // Fetch the follower's user ID based on the username
+    const getFollowerIdQuery = 'SELECT user_id FROM users WHERE username = ?';
+    db.query(getFollowerIdQuery, [username], (err, results) => {
+        if (err) {
+            console.error('Error fetching follower user ID:', err);
+            return res.status(500).send('Internal Server Error');
+        }
+
+        if (results.length === 0) {
+            return res.status(404).send('Follower not found');
+        }
+
+        const followerId = results[0].user_id;
+
+        // Remove the follow request from the database
+        const denyFollowQuery = `
+            DELETE FROM follows
+            WHERE follower_id = ? AND followed_id = ? AND status = 'requested'
+        `;
+        db.query(denyFollowQuery, [followerId, followedId], (err, result) => {
+            if (err) {
+                console.error('Error denying follow request:', err);
+                return res.status(500).send('Internal Server Error');
+            }
+
+            res.status(200).send('Follow request denied');
+        });
+    });
+});
+
+
 
 // Start server
 app.listen(port, () => {
