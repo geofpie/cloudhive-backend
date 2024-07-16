@@ -359,17 +359,18 @@ app.get('/:username', verifyToken, (req, res) => {
                         userInfo.profile_picture_url = url;
 
                         console.log(`Rendering profile page for ${username}`);
-                        res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus: 'requested' }); // Example followStatus
+                        res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
                     });
                 } else {
                     // Render profile.html with user data
                     console.log(`Rendering profile page for ${username}`);
-                    res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus: 'requested' }); // Example followStatus
+                    res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
                 }
             });
         });
     });
 });
+
 
 app.post('/api/posts', (req, res) => {
     const { userId, content, imageUrl } = req.body;
