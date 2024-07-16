@@ -688,6 +688,8 @@ app.post('/api/follow-requests/accept', verifyToken, (req, res) => {
 
         const followerId = results[0].user_id;
 
+        console.log(`Accepting follow request from follower_id: ${followerId} to followed_id: ${followedId}`);
+
         // Update the follow request status to 'accepted'
         const acceptFollowQuery = `
             UPDATE follows
@@ -700,6 +702,7 @@ app.post('/api/follow-requests/accept', verifyToken, (req, res) => {
                 return res.status(500).send('Internal Server Error');
             }
 
+            console.log(`Follow request from follower_id: ${followerId} to followed_id: ${followedId} has been accepted`);
             res.status(200).send('Follow request accepted');
         });
     });
