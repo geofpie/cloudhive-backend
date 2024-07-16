@@ -320,57 +320,77 @@ app.get('/:username', verifyToken, (req, res) => {
 
         const userInfo = userResults[0];
 
-        // Fetch follower and following counts
-        const followerCountQuery = 'SELECT COUNT(*) AS followerCount FROM follows WHERE followed_id = ? AND status = "following"';
-        const followingCountQuery = 'SELECT COUNT(*) AS followingCount FROM follows WHERE follower_id = ? AND status = "following"';
+        // Fetch follow status from follows table
+        const followerId = req.user.userId; 
+        const followedId = userInfo.user_id;
 
-        db.query(followerCountQuery, [userInfo.user_id], (err, followerResults) => {
+        const getFollowStatusQuery = `
+            SELECT status
+            FROM follows
+            WHERE follower_id = ? AND followed_id = ?
+        `;
+        db.query(getFollowStatusQuery, [followerId, followedId], (err, followResults) => {
             if (err) {
-                console.error('Error fetching follower count:', err);
+                console.error('Error fetching follow status:', err);
                 return res.status(500).send('Internal Server Error');
             }
 
-            const followerCount = followerResults[0].followerCount;
+            let followStatus = 'Follow'; // Default to Follow if no record found
+            if (followResults.length > 0) {
+                followStatus = followResults[0].status;
+            }
 
-            db.query(followingCountQuery, [userInfo.user_id], (err, followingResults) => {
+            // Fetch follower and following counts
+            const followerCountQuery = 'SELECT COUNT(*) AS followerCount FROM follows WHERE followed_id = ? AND status = "following"';
+            const followingCountQuery = 'SELECT COUNT(*) AS followingCount FROM follows WHERE follower_id = ? AND status = "following"';
+
+            db.query(followerCountQuery, [userInfo.user_id], (err, followerResults) => {
                 if (err) {
-                    console.error('Error fetching following count:', err);
+                    console.error('Error fetching follower count:', err);
                     return res.status(500).send('Internal Server Error');
                 }
 
-                const followingCount = followingResults[0].followingCount;
+                const followerCount = followerResults[0].followerCount;
 
-                userInfo.followerCount = followerCount;
-                userInfo.followingCount = followingCount;
+                db.query(followingCountQuery, [userInfo.user_id], (err, followingResults) => {
+                    if (err) {
+                        console.error('Error fetching following count:', err);
+                        return res.status(500).send('Internal Server Error');
+                    }
 
-                // Optionally, fetch the profile picture URL if it exists
-                if (userInfo.profilepic_key) {
-                    const params = {
-                        Bucket: 'cloudhive-userdata',
-                        Key: userInfo.profilepic_key,
-                        Expires: 3600 // 1 hour expiration (in seconds)
-                    };
-                    s3.getSignedUrl('getObject', params, (err, url) => {
-                        if (err) {
-                            console.error('Error generating presigned URL:', err);
-                            return res.status(500).send('Internal Server Error');
-                        }
+                    const followingCount = followingResults[0].followingCount;
 
-                        userInfo.profile_picture_url = url;
+                    userInfo.followerCount = followerCount;
+                    userInfo.followingCount = followingCount;
 
+                    // Optionally, fetch the profile picture URL if it exists
+                    if (userInfo.profilepic_key) {
+                        const params = {
+                            Bucket: 'cloudhive-userdata',
+                            Key: userInfo.profilepic_key,
+                            Expires: 3600 // 1 hour expiration (in seconds)
+                        };
+                        s3.getSignedUrl('getObject', params, (err, url) => {
+                            if (err) {
+                                console.error('Error generating presigned URL:', err);
+                                return res.status(500).send('Internal Server Error');
+                            }
+
+                            userInfo.profile_picture_url = url;
+
+                            console.log(`Rendering profile page for ${username}`);
+                            res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
+                        });
+                    } else {
+                        // Render profile.html with user data
                         console.log(`Rendering profile page for ${username}`);
                         res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
-                    });
-                } else {
-                    // Render profile.html with user data
-                    console.log(`Rendering profile page for ${username}`);
-                    res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
-                }
+                    }
+                });
             });
         });
     });
 });
-
 
 app.post('/api/posts', (req, res) => {
     const { userId, content, imageUrl } = req.body;
