@@ -693,7 +693,7 @@ app.post('/api/follow-requests/accept', verifyToken, (req, res) => {
         // Update the follow request status to 'accepted'
         const acceptFollowQuery = `
             UPDATE follows
-            SET status = 'accepted'
+            SET status = 'following'
             WHERE follower_id = ? AND followed_id = ? AND status = 'requested'
         `;
         db.query(acceptFollowQuery, [followerId, followedId], (err, result) => {
