@@ -670,7 +670,6 @@ app.get('/api/follow-requests', verifyToken, (req, res) => {
     });
 });
 
-// Endpoint to accept a follow request
 app.post('/api/follow-requests/accept', verifyToken, (req, res) => {
     const { username } = req.body;
     const followedId = req.user.userId;
@@ -706,7 +705,6 @@ app.post('/api/follow-requests/accept', verifyToken, (req, res) => {
     });
 });
 
-// Endpoint to deny a follow request
 app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
     const { username } = req.body;
     const followedId = req.user.userId;
@@ -740,8 +738,6 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
         });
     });
 });
-
-
 
 // Start server
 app.listen(port, () => {
