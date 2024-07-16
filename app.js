@@ -655,7 +655,7 @@ app.get('/api/follow-requests', verifyToken, (req, res) => {
                 try {
                     const url = await s3.getSignedUrlPromise('getObject', params);
                     request.profile_picture_url = url;
-                    console.log('Presigned url generated: ' ${url})
+                    console.log(`Presigned URL generated: ${url}`);
                 } catch (err) {
                     console.error('Error generating signed URL for profile picture:', err);
                     request.profile_picture_url = '../assets/default-profile.jpg'; // Fallback to default profile picture
