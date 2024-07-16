@@ -632,21 +632,43 @@ app.get('/api/follow-requests', verifyToken, (req, res) => {
     const userId = req.user.userId;
 
     const fetchRequestsQuery = `
-        SELECT users.username, users.first_name, users.last_name, users.profilepic_key
+        SELECT users.user_id, users.username, users.first_name, users.last_name, users.profilepic_key
         FROM follows
         JOIN users ON follows.follower_id = users.user_id
         WHERE follows.followed_id = ? AND follows.status = 'requested'
     `;
 
-    db.query(fetchRequestsQuery, [userId], (err, results) => {
+    db.query(fetchRequestsQuery, [userId], async (err, results) => {
         if (err) {
             console.error('Error fetching follow requests:', err);
             return res.status(500).send('Internal Server Error');
         }
 
-        res.json(results);
+        const followRequests = await Promise.all(results.map(async request => {
+            if (request.profilepic_key) {
+                const params = {
+                    Bucket: 'cloudhive-userdata',
+                    Key: request.profilepic_key,
+                    Expires: 3600 // 1 hour expiration (in seconds)
+                };
+
+                try {
+                    const url = await s3.getSignedUrlPromise('getObject', params);
+                    request.profile_picture_url = url;
+                } catch (err) {
+                    console.error('Error generating signed URL for profile picture:', err);
+                    request.profile_picture_url = '../assets/default-profile.jpg'; // Fallback to default profile picture
+                }
+            } else {
+                request.profile_picture_url = '../assets/default-profile.jpg'; // Fallback to default profile picture
+            }
+            return request;
+        }));
+
+        res.json(followRequests);
     });
 });
+
 
 // Start server
 app.listen(port, () => {
