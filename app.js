@@ -627,6 +627,26 @@ app.get('/api/approve-follow/:username', (req, res) => {
     });
 });
 
+// Endpoint to fetch follow requests for the logged-in user
+app.get('/api/follow-requests', verifyToken, (req, res) => {
+    const userId = req.user.userId;
+
+    const fetchRequestsQuery = `
+        SELECT users.username, users.first_name, users.last_name, users.profilepic_key
+        FROM follows
+        JOIN users ON follows.follower_id = users.user_id
+        WHERE follows.followed_id = ? AND follows.status = 'requested'
+    `;
+
+    db.query(fetchRequestsQuery, [userId], (err, results) => {
+        if (err) {
+            console.error('Error fetching follow requests:', err);
+            return res.status(500).send('Internal Server Error');
+        }
+
+        res.json(results);
+    });
+});
 
 // Start server
 app.listen(port, () => {
