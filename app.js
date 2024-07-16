@@ -301,67 +301,72 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
     });
 });
 
-// Endpoint to fetch and render user profile page
 app.get('/:username', verifyToken, (req, res) => {
     const username = req.params.username;
     console.log(`Fetching profile for username: ${username}`);
 
     // Fetch user information from database
-    db.query('SELECT * FROM users WHERE username = ?', [username], (err, results) => {
+    const userQuery = 'SELECT * FROM users WHERE username = ?';
+    db.query(userQuery, [username], (err, userResults) => {
         if (err) {
             console.error('Error fetching user information:', err);
             return res.status(500).send('Internal Server Error');
         }
 
-        if (results.length === 0) {
+        if (userResults.length === 0) {
             console.log(`User ${username} not found`);
             return res.status(404).send('User not found');
         }
 
-        const userInfo = results[0];
+        const userInfo = userResults[0];
 
-        // Fetch follow status from follows table
-        const followerId = req.user.userId; 
-        const followedId = userInfo.user_id;
+        // Fetch follower and following counts
+        const followerCountQuery = 'SELECT COUNT(*) AS followerCount FROM follows WHERE followed_id = ? AND status = "following"';
+        const followingCountQuery = 'SELECT COUNT(*) AS followingCount FROM follows WHERE follower_id = ? AND status = "following"';
 
-        const getFollowStatusQuery = `
-            SELECT status
-            FROM follows
-            WHERE follower_id = ? AND followed_id = ?
-        `;
-        db.query(getFollowStatusQuery, [followerId, followedId], (err, followResults) => {
+        db.query(followerCountQuery, [userInfo.user_id], (err, followerResults) => {
             if (err) {
-                console.error('Error fetching follow status:', err);
+                console.error('Error fetching follower count:', err);
                 return res.status(500).send('Internal Server Error');
             }
 
-            let followStatus = 'Follow'; // Default to Follow if no record found
-            if (followResults.length > 0) {
-                followStatus = followResults[0].status;
-            }
+            const followerCount = followerResults[0].followerCount;
 
-            if (userInfo.profilepic_key) {
-                const params = {
-                    Bucket: 'cloudhive-userdata',
-                    Key: userInfo.profilepic_key,
-                    Expires: 3600 // 1 hour expiration (in seconds)
-                };
-                s3.getSignedUrl('getObject', params, (err, url) => {
-                    if (err) {
-                        console.error('Error generating presigned URL:', err);
-                        return res.status(500).send('Internal Server Error');
-                    }
+            db.query(followingCountQuery, [userInfo.user_id], (err, followingResults) => {
+                if (err) {
+                    console.error('Error fetching following count:', err);
+                    return res.status(500).send('Internal Server Error');
+                }
 
-                    userInfo.profile_picture_url = url;
+                const followingCount = followingResults[0].followingCount;
 
+                userInfo.followerCount = followerCount;
+                userInfo.followingCount = followingCount;
+
+                // Optionally, fetch the profile picture URL if it exists
+                if (userInfo.profilepic_key) {
+                    const params = {
+                        Bucket: 'cloudhive-userdata',
+                        Key: userInfo.profilepic_key,
+                        Expires: 3600 // 1 hour expiration (in seconds)
+                    };
+                    s3.getSignedUrl('getObject', params, (err, url) => {
+                        if (err) {
+                            console.error('Error generating presigned URL:', err);
+                            return res.status(500).send('Internal Server Error');
+                        }
+
+                        userInfo.profile_picture_url = url;
+
+                        console.log(`Rendering profile page for ${username}`);
+                        res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus: 'requested' }); // Example followStatus
+                    });
+                } else {
+                    // Render profile.html with user data
                     console.log(`Rendering profile page for ${username}`);
-                    res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
-                });
-            } else {
-                // Render profile.html with user data
-                console.log(`Rendering profile page for ${username}`);
-                res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
-            }
+                    res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus: 'requested' }); // Example followStatus
+                }
+            });
         });
     });
 });
