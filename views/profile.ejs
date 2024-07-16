@@ -102,9 +102,9 @@
                 </div>
                 <div class="profile-user-stats mt-auto align-bottom">
                     <div class="col">
-                        <p class="profile-stat profile-posts-count" id="profile-posts-count"><strong>NaN</strong> posts</p>
-                        <p class="profile-stat profile-user-follower-count" id="profile-user-follower-count"><strong>NaN</strong> followers</p>
-                        <p class="profile-stat profile-user-following-count" id="profile-user-following-count"><strong>NaN</strong> following</p>
+                        <p class="profile-stat profile-posts-count" id="profile-posts-count"><strong><%= user.postsCount || 0 %></strong> posts</p>
+                        <p class="profile-stat profile-user-follower-count" id="profile-user-follower-count"><strong><%= user.followerCount || 0 %></strong> followers</p>
+                        <p class="profile-stat profile-user-following-count" id="profile-user-following-count"><strong><%= user.followingCount || 0 %></strong> following</p>
                         <% if (loggedInUser.username === user.username) { %>
                             <!-- Show edit profile button -->
                             <button class="profile-stat hive-user-action"><i class="fa fa-edit"></i>Edit Profile</button>
@@ -115,7 +115,8 @@
                             <% } else if (followStatus === 'following') { %>
                                 <button class="profile-stat hive-user-action" disabled><i class="fa fa-user-plus"></i>Following</button>
                             <% } else { %>
-                            <button class="profile-stat hive-user-action" onclick="sendFollowRequest('<%= user.username %>')"><i class="fa fa-user-plus"></i>Follow</button>
+                                <button class="profile-stat hive-user-action" onclick="sendFollowRequest('<%= user.username %>')"><i class="fa fa-user-plus"></i>Follow</button>
+                            <% } %>
                         <% } %>
                     </div>
                 </div>
