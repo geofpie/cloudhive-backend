@@ -768,6 +768,68 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
     });
 });
 
+app.get('/api/user/:username/posts', verifyToken, (req, res) => {
+    const loggedInUserId = req.user.userId;
+    const { username } = req.params;
+    const { lastPostId } = req.query; // For pagination
+
+    // Fetch userId from username
+    const getUserQuery = 'SELECT user_id FROM users WHERE username = ?';
+    db.query(getUserQuery, [username], (err, userResults) => {
+        if (err || userResults.length === 0) {
+            console.error('Error fetching user:', err);
+            return res.status(500).json({ message: 'Failed to fetch user' });
+        }
+
+        const userId = userResults[0].user_id.toString();
+
+        // Check if the logged-in user is following the profile user or if it's their own profile
+        if (loggedInUserId !== userId) {
+            const checkFollowStatusQuery = `
+                SELECT status
+                FROM follows
+                WHERE follower_id = ? AND followed_id = ?
+            `;
+            db.query(checkFollowStatusQuery, [loggedInUserId, userId], (err, followResults) => {
+                if (err || followResults.length === 0 || followResults[0].status !== 'following') {
+                    return res.status(403).json({ message: 'Not authorized to view these posts' });
+                }
+
+                // Fetch posts if follow status is 'following'
+                fetchUserPosts(userId, lastPostId, res);
+            });
+        } else {
+            // Fetch posts if viewing own profile
+            fetchUserPosts(userId, lastPostId, res);
+        }
+    });
+});
+
+function fetchUserPosts(userId, lastPostId, res) {
+    const params = {
+        TableName: 'cloudhive-postdb',
+        KeyConditionExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+            ':userId': userId
+        },
+        Limit: 8,
+        ScanIndexForward: false // To get the latest posts first
+    };
+
+    if (lastPostId) {
+        params.ExclusiveStartKey = { userId, postId: lastPostId };
+    }
+
+    dynamoDB.query(params, (err, data) => {
+        if (err) {
+            console.error('Error fetching posts:', err);
+            return res.status(500).json({ message: 'Failed to fetch posts' });
+        }
+
+        res.json(data);
+    });
+}
+
 // Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
