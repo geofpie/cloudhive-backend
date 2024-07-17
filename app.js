@@ -773,6 +773,10 @@ app.get('/api/user/:username/posts', verifyToken, (req, res) => {
     const { username } = req.params;
     const { lastPostId } = req.query; // For pagination
 
+    console.log('Received request to fetch posts for username:', username);
+    console.log('Logged in user ID:', loggedInUserId);
+    console.log('Last post ID for pagination:', lastPostId);
+
     // Fetch userId from username
     const getUserQuery = 'SELECT user_id FROM users WHERE username = ?';
     db.query(getUserQuery, [username], (err, userResults) => {
@@ -782,6 +786,7 @@ app.get('/api/user/:username/posts', verifyToken, (req, res) => {
         }
 
         const userId = userResults[0].user_id.toString();
+        console.log('Fetched user ID:', userId);
 
         // Check if the logged-in user is following the profile user or if it's their own profile
         if (loggedInUserId !== userId) {
@@ -792,13 +797,16 @@ app.get('/api/user/:username/posts', verifyToken, (req, res) => {
             `;
             db.query(checkFollowStatusQuery, [loggedInUserId, userId], (err, followResults) => {
                 if (err || followResults.length === 0 || followResults[0].status !== 'following') {
+                    console.error('Follow status check error or not following:', err);
                     return res.status(403).json({ message: 'Not authorized to view these posts' });
                 }
 
+                console.log('User is following the profile user. Fetching posts...');
                 // Fetch posts if follow status is 'following'
                 fetchUserPosts(userId, lastPostId, res);
             });
         } else {
+            console.log('Viewing own profile. Fetching posts...');
             // Fetch posts if viewing own profile
             fetchUserPosts(userId, lastPostId, res);
         }
@@ -818,7 +826,10 @@ function fetchUserPosts(userId, lastPostId, res) {
 
     if (lastPostId) {
         params.ExclusiveStartKey = { userId, postId: lastPostId };
+        console.log('Pagination parameters:', params.ExclusiveStartKey);
     }
+
+    console.log('DynamoDB query parameters:', params);
 
     dynamoDB.query(params, (err, data) => {
         if (err) {
@@ -826,6 +837,7 @@ function fetchUserPosts(userId, lastPostId, res) {
             return res.status(500).json({ message: 'Failed to fetch posts' });
         }
 
+        console.log('Fetched posts:', data);
         res.json(data);
     });
 }
