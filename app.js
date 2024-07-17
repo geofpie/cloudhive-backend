@@ -731,7 +731,7 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 });
 
 // Fetch news feed posts
-app.get('/api/news-feed', verifyToken, (req, res) => {
+app.get('/api/newsfeed', verifyToken, (req, res) => {
     const loggedInUserId = req.user.userId;
     const { lastPostTimestamp } = req.query; // For pagination
 
