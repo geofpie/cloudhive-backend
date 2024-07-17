@@ -730,56 +730,44 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
     });
 });
 
-app.get('/api/user/:username/posts', verifyToken, (req, res) => {
+// Fetch news feed posts
+app.get('/api/newsfeed', verifyToken, (req, res) => {
     const loggedInUserId = req.user.userId;
-    const { username } = req.params;
     const { lastPostId } = req.query; // For pagination
 
-    // Fetch userId from username
-    const getUserQuery = 'SELECT user_id FROM users WHERE username = ?';
-    db.query(getUserQuery, [username], (err, userResults) => {
-        if (err || userResults.length === 0) {
-            console.error('Error fetching user:', err);
-            return res.status(500).json({ message: 'Failed to fetch user' });
+    // Fetch following user IDs
+    const getFollowingQuery = `
+        SELECT followed_id
+        FROM follows
+        WHERE follower_id = ? AND status = 'following'
+    `;
+
+    db.query(getFollowingQuery, [loggedInUserId], (err, followingResults) => {
+        if (err || followingResults.length === 0) {
+            console.error('Error fetching following users:', err);
+            return res.status(500).json({ message: 'Failed to fetch following users' });
         }
 
-        const userId = userResults[0].user_id.toString();
+        const followingUserIds = followingResults.map(row => row.followed_id.toString());
 
-        // Check if the logged-in user is following the profile user or if it's their own profile
-        if (loggedInUserId !== userId) {
-            const checkFollowStatusQuery = `
-                SELECT status
-                FROM follows
-                WHERE follower_id = ? AND followed_id = ?
-            `;
-            db.query(checkFollowStatusQuery, [loggedInUserId, userId], (err, followResults) => {
-                if (err || followResults.length === 0 || followResults[0].status !== 'following') {
-                    return res.status(403).json({ message: 'Not authorized to view these posts' });
-                }
-
-                // Fetch posts if follow status is 'following'
-                fetchUserPosts(userId, lastPostId, res);
-            });
-        } else {
-            // Fetch posts if viewing own profile
-            fetchUserPosts(userId, lastPostId, res);
-        }
+        // Fetch posts from following users
+        fetchNewsFeedPosts(followingUserIds, lastPostId, res);
     });
 });
 
-function fetchUserPosts(userId, lastPostId, res) {
+function fetchNewsFeedPosts(followingUserIds, lastPostId, res) {
     const params = {
         TableName: 'cloudhive-postdb',
-        KeyConditionExpression: 'userId = :userId',
+        KeyConditionExpression: 'userId IN (:followingUserIds)',
         ExpressionAttributeValues: {
-            ':userId': userId
+            ':followingUserIds': followingUserIds
         },
         Limit: 8,
         ScanIndexForward: false // To get the latest posts first
     };
 
     if (lastPostId) {
-        params.ExclusiveStartKey = { userId, postId: lastPostId };
+        params.ExclusiveStartKey = { userId: lastPostId.userId, postId: lastPostId.postId };
     }
 
     dynamoDB.query(params, (err, data) => {
@@ -792,7 +780,7 @@ function fetchUserPosts(userId, lastPostId, res) {
         const postsWithPresignedUrls = data.Items.map(post => {
             if (post.imageUrl) {
                 const presignedUrl = S3.getSignedUrl('getObject', {
-                    Bucket: 'your-s3-bucket-name',
+                    Bucket: 'cloudhive-userdata',
                     Key: post.imageUrl,
                     Expires: 60 * 60 // 1 hour
                 });
