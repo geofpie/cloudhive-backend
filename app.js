@@ -730,6 +730,7 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
     });
 });
 
+// Fetch news feed posts
 app.get('/api/newsfeed', verifyToken, (req, res) => {
     const loggedInUserId = req.user.userId;
     const { lastPostTimestamp } = req.query; // For pagination
@@ -771,6 +772,24 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
 
             try {
                 const data = await dynamoDB.query(params).promise();
+                for (let post of data.Items) {
+                    if (post.profilePictureKey) {
+                        const params = {
+                            Bucket: 'cloudhive-userdata',
+                            Key: post.profilePictureKey,
+                            Expires: 3600 // 1 hour expiration (in seconds)
+                        };
+                        post.userProfilePicture = await s3.getSignedUrlPromise('getObject', params);
+                    }
+                    if (post.imageUrl) {
+                        const params = {
+                            Bucket: 'cloudhive-userdata',
+                            Key: post.imageUrl,
+                            Expires: 3600 // 1 hour expiration (in seconds)
+                        };
+                        post.imageUrl = await s3.getSignedUrlPromise('getObject', params);
+                    }
+                }
                 allPosts = allPosts.concat(data.Items);
                 if (data.LastEvaluatedKey) {
                     lastEvaluatedKeys[userId] = data.LastEvaluatedKey;
