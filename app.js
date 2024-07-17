@@ -730,12 +730,10 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
     });
 });
 
-// Fetch news feed posts
 app.get('/api/newsfeed', verifyToken, (req, res) => {
     const loggedInUserId = req.user.userId;
-    const { lastPostId } = req.query; // For pagination
+    const { lastPostTimestamp } = req.query; // For pagination
 
-    // Fetch the user IDs the logged-in user is following
     const getFollowedUsersQuery = `
         SELECT followed_id
         FROM follows
@@ -751,7 +749,6 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
             return res.json({ Items: [], LastEvaluatedKey: null });
         }
 
-        // Fetch posts for each followed user
         const followedUserIds = followResults.map(row => row.followed_id.toString());
         let allPosts = [];
         let lastEvaluatedKeys = {};
@@ -764,11 +761,12 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
                     ':userId': userId
                 },
                 Limit: 8,
-                ScanIndexForward: false // To get the latest posts first
+                ScanIndexForward: false
             };
 
-            if (lastEvaluatedKeys[userId]) {
-                params.ExclusiveStartKey = lastEvaluatedKeys[userId];
+            if (lastPostTimestamp) {
+                params.KeyConditionExpression += ' AND timestamp < :lastPostTimestamp';
+                params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
             }
 
             try {
@@ -783,16 +781,11 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
             }
         }
 
-        // Sort the posts by timestamp in descending order
         allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-        // Limit the result to 8 posts
         const paginatedPosts = allPosts.slice(0, 8);
+        const lastPostTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].timestamp : null;
 
-        // Get the last post's timestamp for pagination
-        const lastPostTimestamp = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].timestamp : null;
-
-        res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestamp });
+        res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
     });
 });
 
