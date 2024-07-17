@@ -731,7 +731,7 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 });
 
 // Fetch news feed posts
-app.get('/api/newsfeed', verifyToken, (req, res) => {
+app.get('/api/news-feed', verifyToken, (req, res) => {
     const loggedInUserId = req.user.userId;
     const { lastPostTimestamp } = req.query; // For pagination
 
@@ -773,6 +773,7 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
             try {
                 const data = await dynamoDB.query(params).promise();
                 for (let post of data.Items) {
+                    // Presign user profile picture URL
                     if (post.profilePictureKey) {
                         const params = {
                             Bucket: 'cloudhive-userdata',
@@ -780,7 +781,9 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
                             Expires: 3600 // 1 hour expiration (in seconds)
                         };
                         post.userProfilePicture = await s3.getSignedUrlPromise('getObject', params);
+                        console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
                     }
+                    // Presign post image URL
                     if (post.imageUrl) {
                         const params = {
                             Bucket: 'cloudhive-userdata',
@@ -788,6 +791,7 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
                             Expires: 3600 // 1 hour expiration (in seconds)
                         };
                         post.imageUrl = await s3.getSignedUrlPromise('getObject', params);
+                        console.log(`Generated presigned URL for post image: ${post.imageUrl}`);
                     }
                 }
                 allPosts = allPosts.concat(data.Items);
