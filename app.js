@@ -735,6 +735,9 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
     const loggedInUserId = req.user.userId;
     const { lastPostId } = req.query; // For pagination
 
+    console.log('Fetching news feed for user:', loggedInUserId);
+    console.log('Last post ID for pagination:', lastPostId);
+
     // Fetch following user IDs
     const getFollowingQuery = `
         SELECT followed_id
@@ -742,13 +745,21 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
         WHERE follower_id = ? AND status = 'following'
     `;
 
+    console.log('Executing query to fetch following users:', getFollowingQuery);
+
     db.query(getFollowingQuery, [loggedInUserId], (err, followingResults) => {
-        if (err || followingResults.length === 0) {
+        if (err) {
             console.error('Error fetching following users:', err);
             return res.status(500).json({ message: 'Failed to fetch following users' });
         }
 
+        if (followingResults.length === 0) {
+            console.log('No following users found for user:', loggedInUserId);
+            return res.status(200).json({ Items: [] });
+        }
+
         const followingUserIds = followingResults.map(row => row.followed_id.toString());
+        console.log('Following user IDs:', followingUserIds);
 
         // Fetch posts from following users
         fetchNewsFeedPosts(followingUserIds, lastPostId, res);
@@ -758,6 +769,7 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
 function fetchNewsFeedPosts(followingUserIds, lastPostId, res) {
     const params = {
         TableName: 'cloudhive-postdb',
+        IndexName: 'userId-timestamp-index', // Assuming a global secondary index on userId and timestamp
         KeyConditionExpression: 'userId IN (:followingUserIds)',
         ExpressionAttributeValues: {
             ':followingUserIds': followingUserIds
@@ -768,7 +780,10 @@ function fetchNewsFeedPosts(followingUserIds, lastPostId, res) {
 
     if (lastPostId) {
         params.ExclusiveStartKey = { userId: lastPostId.userId, postId: lastPostId.postId };
+        console.log('ExclusiveStartKey for pagination:', params.ExclusiveStartKey);
     }
+
+    console.log('DynamoDB query params:', params);
 
     dynamoDB.query(params, (err, data) => {
         if (err) {
@@ -776,15 +791,18 @@ function fetchNewsFeedPosts(followingUserIds, lastPostId, res) {
             return res.status(500).json({ message: 'Failed to fetch posts' });
         }
 
+        console.log('Fetched posts:', data.Items);
+
         // Generate presigned URLs for images
         const postsWithPresignedUrls = data.Items.map(post => {
             if (post.imageUrl) {
                 const presignedUrl = S3.getSignedUrl('getObject', {
-                    Bucket: 'cloudhive-userdata',
+                    Bucket: 'your-s3-bucket-name',
                     Key: post.imageUrl,
                     Expires: 60 * 60 // 1 hour
                 });
                 post.imageUrl = presignedUrl;
+                console.log(`Generated presigned URL for image: ${post.imageUrl}`);
             }
             return post;
         });
@@ -793,6 +811,8 @@ function fetchNewsFeedPosts(followingUserIds, lastPostId, res) {
             Items: postsWithPresignedUrls,
             LastEvaluatedKey: data.LastEvaluatedKey
         });
+
+        console.log('Response sent with posts:', postsWithPresignedUrls);
     });
 }
 
