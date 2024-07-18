@@ -725,7 +725,10 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
         const followedUserIds = followResults.map(row => row.followed_id.toString());
         let allPosts = [];
 
-        // Fetch posts from followed users
+        // Include signed-in user's ID in followedUserIds
+        followedUserIds.push(loggedInUserId);
+
+        // Fetch posts from followed users and signed-in user
         for (const userId of followedUserIds) {
             const params = {
                 TableName: 'cloudhive-postdb',
@@ -771,51 +774,6 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
 
             allPosts = allPosts.concat(data.Items);
         }
-
-        // Fetch posts from the signed-in user
-        const signedInUserParams = {
-            TableName: 'cloudhive-postdb',
-            KeyConditionExpression: 'userId = :userId',
-            ExpressionAttributeValues: {
-                ':userId': loggedInUserId
-            },
-            Limit: 8,
-            ScanIndexForward: false
-        };
-
-        if (lastPostTimestamp) {
-            signedInUserParams.KeyConditionExpression += ' AND timestamp < :lastPostTimestamp';
-            signedInUserParams.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
-        }
-
-        const signedInUserData = await dynamoDB.query(signedInUserParams).promise();
-
-        // Generate presigned URLs for signed-in user's profile pictures and post images
-        for (let post of signedInUserData.Items) {
-            // Presign user profile picture URL if exists
-            if (post.profilePictureKey) {
-                const profilePicParams = {
-                    Bucket: 'cloudhive-userdata',
-                    Key: post.profilePictureKey,
-                    Expires: 3600 // 1 hour expiration (in seconds)
-                };
-                post.userProfilePicture = await s3.getSignedUrlPromise('getObject', profilePicParams);
-                console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
-            }
-
-            // Presign post image URL if exists
-            if (post.postImageKey) {
-                const postImgParams = {
-                    Bucket: 'cloudhive-userdata',
-                    Key: post.postImageKey,
-                    Expires: 3600 // 1 hour expiration (in seconds)
-                };
-                post.imageUrl = await s3.getSignedUrlPromise('getObject', postImgParams);
-                console.log(`Generated presigned URL for post image: ${post.imageUrl}`);
-            }
-        }
-
-        allPosts = allPosts.concat(signedInUserData.Items);
 
         // Sort all posts by timestamp
         allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
