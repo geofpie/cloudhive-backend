@@ -432,7 +432,7 @@ app.post('/api/create_post', verifyToken, upload.single('postImage'), (req, res)
     const userId = req.user.userId.toString(); // Ensure userId is a string
     const username = req.user.username;
 
-    let imageUrl = null;
+    let postImageKey = null;
 
     if (req.file) {
         const file = req.file;
@@ -453,15 +453,15 @@ app.post('/api/create_post', verifyToken, upload.single('postImage'), (req, res)
                 return res.status(500).json({ error: 'Failed to upload image' });
             }
 
-            imageUrl = data.Location;
-            savePostToDynamoDB(userId, username, content, imageUrl, res);
+            postImageKey = fileKey; // Store the S3 key instead of the URL
+            savePostToDynamoDB(userId, username, content, postImageKey, res);
         });
     } else {
-        savePostToDynamoDB(userId, username, content, imageUrl, res);
+        savePostToDynamoDB(userId, username, content, postImageKey, res);
     }
 });
 
-function savePostToDynamoDB(userId, username, content, imageUrl, res) {
+function savePostToDynamoDB(userId, username, content, postImageKey, res) {
     const postId = crypto.randomBytes(16).toString('hex');
     const timestamp = new Date().toISOString();
 
@@ -472,33 +472,7 @@ function savePostToDynamoDB(userId, username, content, imageUrl, res) {
             userId: userId,
             username: username,
             content: content,
-            imageUrl: imageUrl,
-            timestamp: timestamp
-        }
-    };
-
-    dynamoDB.put(params, (err, data) => {
-        if (err) {
-            console.error('Error saving post to DynamoDB:', err);
-            return res.status(500).json({ error: 'Failed to save post' });
-        }
-
-        res.status(201).json({ message: 'Post created successfully' });
-    });
-}
-
-function savePostToDynamoDB(userId, username, content, imageUrl, res) {
-    const postId = crypto.randomBytes(16).toString('hex');
-    const timestamp = new Date().toISOString();
-
-    const params = {
-        TableName: TABLE_NAME,
-        Item: {
-            postId: postId,
-            userId: userId,
-            username: username,
-            content: content,
-            imageUrl: imageUrl,
+            postImageKey: postImageKey,
             timestamp: timestamp
         }
     };
@@ -784,10 +758,10 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
                         console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
                     }
                     // Presign post image URL
-                    if (post.imageUrl) {
+                    if (post.postImageKey) {
                         const params = {
                             Bucket: 'cloudhive-userdata',
-                            Key: post.imageUrl,
+                            Key: post.postImageKey,
                             Expires: 3600 // 1 hour expiration (in seconds)
                         };
                         post.imageUrl = await s3.getSignedUrlPromise('getObject', params);
@@ -811,7 +785,6 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
         res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
     });
 });
-
 
 // Start server
 app.listen(port, () => {
