@@ -731,7 +731,7 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 });
 
 // Fetch news feed posts
-app.get('/api/newsfeed', verifyToken, async (req, res) => {
+app.get('/api/newsfeed', verifyToken, (req, res) => {
     const loggedInUserId = req.user.userId;
     const { lastPostTimestamp } = req.query; // For pagination
 
@@ -755,69 +755,53 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
         let lastEvaluatedKeys = {};
 
         for (const userId of followedUserIds) {
-            const getUserQuery = 'SELECT profilepic_key FROM users WHERE user_id = ?';
-            db.query(getUserQuery, [userId], async (userErr, userResults) => {
-                if (userErr) {
-                    console.error('Error fetching user info:', userErr);
-                    return res.status(500).json({ message: 'Failed to fetch user info' });
-                }
+            const params = {
+                TableName: 'cloudhive-postdb',
+                KeyConditionExpression: 'userId = :userId',
+                ExpressionAttributeValues: {
+                    ':userId': userId
+                },
+                Limit: 8,
+                ScanIndexForward: false
+            };
 
-                const profilepicKey = userResults[0]?.profilepic_key;
+            if (lastPostTimestamp) {
+                params.KeyConditionExpression += ' AND timestamp < :lastPostTimestamp';
+                params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
+            }
 
-                const params = {
-                    TableName: 'cloudhive-postdb',
-                    KeyConditionExpression: 'userId = :userId',
-                    ExpressionAttributeValues: {
-                        ':userId': userId
-                    },
-                    Limit: 8,
-                    ScanIndexForward: false
-                };
-
-                if (lastPostTimestamp) {
-                    params.KeyConditionExpression += ' AND timestamp < :lastPostTimestamp';
-                    params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
-                }
-
-                try {
-                    const data = await dynamoDB.query(params).promise();
-                    for (let post of data.Items) {
-                        // Presign user profile picture URL
-                        if (profilepicKey) {
-                            const presignedParams = {
-                                Bucket: 'cloudhive-userdata',
-                                Key: profilepicKey,
-                                Expires: 3600 // 1 hour expiration (in seconds)
-                            };
-                            post.userProfilePicture = await s3.getSignedUrlPromise('getObject', presignedParams);
-                            console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
-                        } else {
-                            post.userProfilePicture = '../assets/default-profile.jpg';
-                            console.log(`No profilepic_key found for userId: ${userId}`);
-                        }
-                        
-                        // Presign post image URL
-                        if (post.imageUrl) {
-                            const presignedParams = {
-                                Bucket: 'cloudhive-userdata',
-                                Key: post.imageUrl,
-                                Expires: 3600 // 1 hour expiration (in seconds)
-                            };
-                            post.imageUrl = await s3.getSignedUrlPromise('getObject', presignedParams);
-                            console.log(`Generated presigned URL for post image: ${post.imageUrl}`);
-                        } else {
-                            console.log(`No imageUrl found for post by userId: ${userId}`);
-                        }
+            try {
+                const data = await dynamoDB.query(params).promise();
+                for (let post of data.Items) {
+                    // Presign user profile picture URL
+                    if (post.profilePictureKey) {
+                        const params = {
+                            Bucket: 'cloudhive-userdata',
+                            Key: post.profilePictureKey,
+                            Expires: 3600 // 1 hour expiration (in seconds)
+                        };
+                        post.userProfilePicture = await s3.getSignedUrlPromise('getObject', params);
+                        console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
                     }
-                    allPosts = allPosts.concat(data.Items);
-                    if (data.LastEvaluatedKey) {
-                        lastEvaluatedKeys[userId] = data.LastEvaluatedKey;
+                    // Presign post image URL
+                    if (post.imageUrl) {
+                        const params = {
+                            Bucket: 'cloudhive-userdata',
+                            Key: post.imageUrl,
+                            Expires: 3600 // 1 hour expiration (in seconds)
+                        };
+                        post.imageUrl = await s3.getSignedUrlPromise('getObject', params);
+                        console.log(`Generated presigned URL for post image: ${post.imageUrl}`);
                     }
-                } catch (err) {
-                    console.error('Error fetching posts:', err);
-                    return res.status(500).json({ message: 'Failed to fetch posts' });
                 }
-            });
+                allPosts = allPosts.concat(data.Items);
+                if (data.LastEvaluatedKey) {
+                    lastEvaluatedKeys[userId] = data.LastEvaluatedKey;
+                }
+            } catch (err) {
+                console.error('Error fetching posts:', err);
+                return res.status(500).json({ message: 'Failed to fetch posts' });
+            }
         }
 
         allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -827,6 +811,7 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
         res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
     });
 });
+
 
 // Start server
 app.listen(port, () => {
