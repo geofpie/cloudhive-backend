@@ -716,9 +716,9 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
             FROM follows
             WHERE follower_id = ? AND status = 'following'
         `;
-        const followResults = await db.query(getFollowedUsersQuery, [loggedInUserId]);
+        const [followResults, _] = await db.query(getFollowedUsersQuery, [loggedInUserId]);
 
-        if (followResults.length === 0) {
+        if (!followResults || followResults.length === 0) {
             return res.json({ Items: [], LastEvaluatedKey: null });
         }
 
