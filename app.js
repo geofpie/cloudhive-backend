@@ -747,6 +747,15 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
             try {
                 const data = await dynamoDB.query(params).promise();
                 for (let post of data.Items) {
+                    // Fetch user first_name from MySQL
+                    const getUserFirstNameQuery = `
+                        SELECT first_name
+                        FROM users
+                        WHERE user_id = ?
+                    `;
+                    const [firstNameResult] = await db.query(getUserFirstNameQuery, [post.userId]);
+                    post.firstName = firstNameResult[0].first_name; // Assuming first_name is a column in your users table
+
                     // Presign user profile picture URL
                     if (post.profilePictureKey) {
                         const params = {
