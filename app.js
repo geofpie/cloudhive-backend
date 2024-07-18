@@ -755,7 +755,7 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
         let lastEvaluatedKeys = {};
 
         for (const userId of followedUserIds) {
-            const getUserQuery = 'SELECT profilepic_key FROM users WHERE id = ?';
+            const getUserQuery = 'SELECT profilepic_key FROM users WHERE user_id = ?';
             db.query(getUserQuery, [userId], async (userErr, userResults) => {
                 if (userErr) {
                     console.error('Error fetching user info:', userErr);
