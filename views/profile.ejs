@@ -21,6 +21,9 @@
     <script src="https://unpkg.com/pica/dist/pica.min.js"></script>
     <!-- Feed JS -->
     <script defer src="js/profile.js" defer></script>
+    <!-- day.js for relative time calculation -->
+    <script src="https://cdn.jsdelivr.net/npm/dayjs/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs/plugin/relativeTime.js"></script>
 </head>
 <body>
     <!-- Navbar -->
@@ -148,6 +151,8 @@
                 <i class="fa fa-user-plus followperson-icon"></i>
                 <h3 class="user-followed-header">Follow {user} to view their posts, and get connected.</h3>
             </div>
+            <% } else { %>
+                <button id="load-more">Load More</button>
             <% } %>
         </div>
     </div>
