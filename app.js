@@ -360,32 +360,44 @@ app.get('/:username', verifyToken, (req, res) => {
 
                     const followingCount = followingResults[0].followingCount;
 
-                    userInfo.followerCount = followerCount;
-                    userInfo.followingCount = followingCount;
+                    // Fetch post count
+                    const postCountQuery = 'SELECT COUNT(*) AS postCount FROM posts WHERE user_id = ?';
+                    db.query(postCountQuery, [userInfo.user_id], (err, postCountResults) => {
+                        if (err) {
+                            console.error('Error fetching post count:', err);
+                            return res.status(500).send('Internal Server Error');
+                        }
 
-                    // Optionally, fetch the profile picture URL if it exists
-                    if (userInfo.profilepic_key) {
-                        const params = {
-                            Bucket: 'cloudhive-userdata',
-                            Key: userInfo.profilepic_key,
-                            Expires: 3600 // 1 hour expiration (in seconds)
-                        };
-                        s3.getSignedUrl('getObject', params, (err, url) => {
-                            if (err) {
-                                console.error('Error generating presigned URL:', err);
-                                return res.status(500).send('Internal Server Error');
-                            }
+                        const postCount = postCountResults[0].postCount;
 
-                            userInfo.profile_picture_url = url;
+                        userInfo.followerCount = followerCount;
+                        userInfo.followingCount = followingCount;
+                        userInfo.postsCount = postCount;
 
+                        // Optionally, fetch the profile picture URL if it exists
+                        if (userInfo.profilepic_key) {
+                            const params = {
+                                Bucket: 'cloudhive-userdata',
+                                Key: userInfo.profilepic_key,
+                                Expires: 3600 // 1 hour expiration (in seconds)
+                            };
+                            s3.getSignedUrl('getObject', params, (err, url) => {
+                                if (err) {
+                                    console.error('Error generating presigned URL:', err);
+                                    return res.status(500).send('Internal Server Error');
+                                }
+
+                                userInfo.profile_picture_url = url;
+
+                                console.log(`Rendering profile page for ${username}`);
+                                res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
+                            });
+                        } else {
+                            // Render profile.html with user data
                             console.log(`Rendering profile page for ${username}`);
                             res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
-                        });
-                    } else {
-                        // Render profile.html with user data
-                        console.log(`Rendering profile page for ${username}`);
-                        res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
-                    }
+                        }
+                    });
                 });
             });
         });
