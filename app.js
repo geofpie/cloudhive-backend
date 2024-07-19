@@ -366,9 +366,9 @@ app.get('/:username', verifyToken, (req, res) => {
                     // Fetch post count from DynamoDB
                     const params = {
                         TableName: 'cloudhive-postdb',
-                        KeyConditionExpression: 'user_id = :uid',
+                        KeyConditionExpression: 'userId = :uid',
                         ExpressionAttributeValues: {
-                            ':uid': userInfo.user_id
+                            ':uid': userInfo.userId
                         },
                         Select: 'COUNT'
                     };
