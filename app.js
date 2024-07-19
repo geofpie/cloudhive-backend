@@ -815,6 +815,102 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
     });
 });
 
+// Fetch profile feed posts
+app.get('/api/profilefeed/:username', verifyToken, async (req, res) => {
+    const loggedInUserId = req.user.user_id;
+    const { lastPostTimestamp } = req.query; // For pagination
+    const { username } = req.params;
+
+    // Fetch the userId of the profile being viewed
+    const getUserIdQuery = 'SELECT user_id FROM users WHERE username = ?';
+    db.query(getUserIdQuery, [username], async (err, userResults) => {
+        if (err) {
+            console.error('Error fetching user ID:', err);
+            return res.status(500).json({ message: 'Failed to fetch user ID' });
+        }
+
+        if (userResults.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const profileUserId = userResults[0].user_id.toString();
+
+        // Check if the logged-in user is viewing their own profile or is following the profile user
+        const getFollowStatusQuery = `
+            SELECT status
+            FROM follows
+            WHERE follower_id = ? AND followed_id = ?
+        `;
+        db.query(getFollowStatusQuery, [loggedInUserId, profileUserId], async (err, followResults) => {
+            if (err) {
+                console.error('Error checking follow status:', err);
+                return res.status(500).json({ message: 'Failed to check follow status' });
+            }
+
+            const isFollowing = followResults.length > 0 && followResults[0].status === 'following';
+            const isOwnProfile = loggedInUserId === profileUserId;
+
+            if (!isFollowing && !isOwnProfile) {
+                return res.status(403).json({ message: 'You are not allowed to view these posts' });
+            }
+
+            const params = {
+                TableName: 'cloudhive-postdb',
+                KeyConditionExpression: 'userId = :userId',
+                ExpressionAttributeValues: {
+                    ':userId': profileUserId
+                },
+                Limit: 8,
+                ScanIndexForward: false
+            };
+
+            if (lastPostTimestamp) {
+                params.KeyConditionExpression += ' AND timestamp < :lastPostTimestamp';
+                params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
+            }
+
+            try {
+                const data = await dynamoDB.query(params).promise();
+                const allPosts = [];
+
+                for (let post of data.Items) {
+                    // Presign user profile picture URL
+                    if (post.profilePictureKey) {
+                        const params = {
+                            Bucket: 'cloudhive-userdata',
+                            Key: post.profilePictureKey,
+                            Expires: 3600 // 1 hour expiration (in seconds)
+                        };
+                        post.userProfilePicture = await s3.getSignedUrlPromise('getObject', params);
+                        console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
+                    }
+                    // Presign post image URL
+                    if (post.postImageKey) {
+                        const params = {
+                            Bucket: 'cloudhive-userdata',
+                            Key: post.postImageKey,
+                            Expires: 3600 // 1 hour expiration (in seconds)
+                        };
+                        post.imageUrl = await s3.getSignedUrlPromise('getObject', params);
+                        console.log(`Generated presigned URL for post image: ${post.imageUrl}`);
+                    }
+                    allPosts.push(post);
+                }
+
+                allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                const paginatedPosts = allPosts.slice(0, 8);
+                const lastPostTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].timestamp : null;
+
+                res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
+            } catch (err) {
+                console.error('Error fetching posts:', err);
+                return res.status(500).json({ message: 'Failed to fetch posts' });
+            }
+        });
+    });
+});
+
+
 // Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
