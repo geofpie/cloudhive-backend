@@ -375,7 +375,7 @@ app.get('/:username', verifyToken, (req, res) => {
                         TableName: 'cloudhive-postdb',
                         KeyConditionExpression: 'userId = :uid',
                         ExpressionAttributeValues: {
-                            ':uid': userInfo.user_id
+                            ':uid': userInfo.user_id.toString()
                         },
                         Select: 'COUNT'
                     };
