@@ -162,37 +162,37 @@
         </div>
     </div>
     <!-- Custom Modal Structure -->
-<div id="postModal" class="post-modal hidden">
-    <div class="post-modal-content">
-        <div class="post-modal-header">
-            <h2>Write a Post</h2>
-            <button id="closeModal" class="custom-modal-close">&times;</button>
-        </div>
-        <div class="post-modal-body">
-            <form id="writePostForm">
-                <div class="form-group">
-                    <textarea class="form-control" id="postContent" rows="3" placeholder="What's on your mind?"></textarea>
+    <div id="postModal" class="post-modal hidden">
+        <div class="post-modal-content">
+            <div class="post-modal-header">
+                <h2>Write a Post</h2>
+                <button id="closeModal" class="custom-modal-close">&times;</button>
+            </div>
+            <div class="post-modal-body">
+                <form id="writePostForm">
+                    <div class="form-group">
+                        <textarea class="form-control" id="postContent" rows="3" placeholder="What's on your mind?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <button type="button" id="attachImageButton" class="btn btn-secondary">Attach Image</button>
+                        <input type="file" id="postImage" class="form-control-file" style="display: none;">
+                    </div>
+                    <img id="imagePreview" src="#" alt="Image Preview" style="display: none; max-width: 100%;">
+                </form>
+                <!-- Upload indicator -->
+                <div id="uploadIndicator" class="upload-indicator hidden">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Uploading...</span>
+                    </div>
+                    <p>Uploading...</p>
                 </div>
-                <div class="form-group">
-                    <button type="button" id="attachImageButton" class="btn btn-secondary">Attach Image</button>
-                    <input type="file" id="postImage" class="form-control-file" style="display: none;">
-                </div>
-                <img id="imagePreview" src="#" alt="Image Preview" style="display: none; max-width: 100%;">
-            </form>
-            <!-- Upload indicator -->
-            <div id="uploadIndicator" class="upload-indicator hidden">
-                <div class="spinner-border" role="status">
-                    <span class="sr-only">Uploading...</span>
-                </div>
-                <p>Uploading...</p>
+            </div>
+            <div class="post-modal-footer">
+                <button type="button" id="closeModalFooter" class="btn btn-secondary">Close</button>
+                <button type="button" id="submitPostButton" class="btn btn-primary">Post</button>
             </div>
         </div>
-        <div class="post-modal-footer">
-            <button type="button" id="closeModalFooter" class="btn btn-secondary">Close</button>
-            <button type="button" id="submitPostButton" class="btn btn-primary">Post</button>
-        </div>
     </div>
-</div>
 </body>
 <footer>
     <div class="container">
