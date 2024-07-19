@@ -141,39 +141,7 @@
             </div>
             <div class="col"></div>
         </div>
-        <% } %>
-
-        <!-- Modal HTML -->
-        <div class="modal fade" id="writePostModal" tabindex="-1" aria-labelledby="writePostModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="writePostModalLabel">Write a Post</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="writePostForm">
-                            <div class="form-group">
-                                <textarea class="form-control" id="postContent" rows="3" placeholder="What's on your mind?"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <button type="button" id="attachImageButton" class="btn btn-secondary">Attach Image</button>
-                                <input type="file" id="postImage" class="form-control-file" style="display: none;">
-                            </div>
-                            <img id="imagePreview" src="#" alt="Image Preview" style="display: none; max-width: 100%;">
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="button" id="submitPostButton" class="btn btn-primary">Post</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
+        <% } %>        
         <div class="row hive-feed-area" id="hive-feed-area">
             <% if (followStatus !== 'following') { %>
             <div class="col-md-3 user-not-followed shadow mx-auto">
@@ -183,6 +151,31 @@
             <% } %>
         </div>
     </div>
+    <!-- Custom Modal Structure -->
+<div id="postModal" class="post-modal hidden">
+    <div class="post-modal-content">
+        <div class="post-modal-header">
+            <h2>Write a Post</h2>
+            <button id="closeModal" class="custom-modal-close">&times;</button>
+        </div>
+        <div class="post-modal-body">
+            <form id="writePostForm">
+                <div class="form-group">
+                    <textarea class="form-control" id="postContent" rows="3" placeholder="What's on your mind?"></textarea>
+                </div>
+                <div class="form-group">
+                    <button type="button" id="attachImageButton" class="btn btn-secondary">Attach Image</button>
+                    <input type="file" id="postImage" class="form-control-file" style="display: none;">
+                </div>
+                <img id="imagePreview" src="#" alt="Image Preview" style="display: none; max-width: 100%;">
+            </form>
+        </div>
+        <div class="post-modal-footer">
+            <button type="button" id="closeModalFooter" class="btn btn-secondary">Close</button>
+            <button type="button" id="submitPostButton" class="btn btn-primary">Post</button>
+        </div>
+    </div>
+</div>
 </body>
 <footer>
     <div class="container">
