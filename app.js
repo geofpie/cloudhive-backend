@@ -305,7 +305,7 @@ app.get('/:username', verifyToken, (req, res) => {
     const username = req.params.username;
     console.log(`Fetching profile for username: ${username}`);
 
-    // Fetch user information from database
+    // Fetch user information from MySQL database
     const userQuery = 'SELECT * FROM users WHERE username = ?';
     db.query(userQuery, [username], (err, userResults) => {
         if (err) {
@@ -319,6 +319,7 @@ app.get('/:username', verifyToken, (req, res) => {
         }
 
         const userInfo = userResults[0];
+        console.log('User information:', userInfo);
 
         // Fetch follow status from follows table
         const followerId = req.user.userId; 
@@ -363,29 +364,57 @@ app.get('/:username', verifyToken, (req, res) => {
                     userInfo.followerCount = followerCount;
                     userInfo.followingCount = followingCount;
 
-                    // Optionally, fetch the profile picture URL if it exists
-                    if (userInfo.profilepic_key) {
-                        const params = {
-                            Bucket: 'cloudhive-userdata',
-                            Key: userInfo.profilepic_key,
-                            Expires: 3600 // 1 hour expiration (in seconds)
-                        };
-                        s3.getSignedUrl('getObject', params, (err, url) => {
-                            if (err) {
-                                console.error('Error generating presigned URL:', err);
-                                return res.status(500).send('Internal Server Error');
-                            }
+                    // Ensure userInfo.user_id is defined and not empty
+                    if (!userInfo.user_id) {
+                        console.error('user_id is undefined or null:', userInfo.user_id);
+                        return res.status(500).send('Internal Server Error');
+                    }
 
-                            userInfo.profile_picture_url = url;
+                    // Fetch post count from DynamoDB
+                    const params = {
+                        TableName: 'cloudhive-postdb',
+                        KeyConditionExpression: 'userId = :uid',
+                        ExpressionAttributeValues: {
+                            ':uid': userInfo.user_id
+                        },
+                        Select: 'COUNT'
+                    };
 
+                    console.log('DynamoDB query params:', params);
+
+                    dynamoDB.query(params, (err, data) => {
+                        if (err) {
+                            console.error('Error fetching post count:', err);
+                            return res.status(500).send('Internal Server Error');
+                        }
+
+                        const postCount = data.Count;
+                        userInfo.postsCount = postCount;
+
+                        // Optionally, fetch the profile picture URL if it exists
+                        if (userInfo.profilepic_key) {
+                            const params = {
+                                Bucket: 'cloudhive-userdata',
+                                Key: userInfo.profilepic_key,
+                                Expires: 3600 // 1 hour expiration (in seconds)
+                            };
+                            s3.getSignedUrl('getObject', params, (err, url) => {
+                                if (err) {
+                                    console.error('Error generating presigned URL:', err);
+                                    return res.status(500).send('Internal Server Error');
+                                }
+
+                                userInfo.profile_picture_url = url;
+
+                                console.log(`Rendering profile page for ${username}`);
+                                res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
+                            });
+                        } else {
+                            // Render profile.html with user data
                             console.log(`Rendering profile page for ${username}`);
                             res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
-                        });
-                    } else {
-                        // Render profile.html with user data
-                        console.log(`Rendering profile page for ${username}`);
-                        res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
-                    }
+                        }
+                    });
                 });
             });
         });
