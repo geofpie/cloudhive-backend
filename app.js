@@ -305,7 +305,7 @@ app.get('/:username', verifyToken, (req, res) => {
     const username = req.params.username;
     console.log(`Fetching profile for username: ${username}`);
 
-    // Fetch user information from database
+    // Fetch user information from MySQL database
     const userQuery = 'SELECT * FROM users WHERE username = ?';
     db.query(userQuery, [username], (err, userResults) => {
         if (err) {
@@ -360,18 +360,26 @@ app.get('/:username', verifyToken, (req, res) => {
 
                     const followingCount = followingResults[0].followingCount;
 
-                    // Fetch post count
-                    const postCountQuery = 'SELECT COUNT(*) AS postCount FROM posts WHERE user_id = ?';
-                    db.query(postCountQuery, [userInfo.user_id], (err, postCountResults) => {
+                    userInfo.followerCount = followerCount;
+                    userInfo.followingCount = followingCount;
+
+                    // Fetch post count from DynamoDB
+                    const params = {
+                        TableName: 'cloudhive-postdb',
+                        KeyConditionExpression: 'user_id = :uid',
+                        ExpressionAttributeValues: {
+                            ':uid': userInfo.user_id
+                        },
+                        Select: 'COUNT'
+                    };
+
+                    dynamoDB.query(params, (err, data) => {
                         if (err) {
                             console.error('Error fetching post count:', err);
                             return res.status(500).send('Internal Server Error');
                         }
 
-                        const postCount = postCountResults[0].postCount;
-
-                        userInfo.followerCount = followerCount;
-                        userInfo.followingCount = followingCount;
+                        const postCount = data.Count;
                         userInfo.postsCount = postCount;
 
                         // Optionally, fetch the profile picture URL if it exists
