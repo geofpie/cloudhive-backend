@@ -17,8 +17,6 @@ const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
 const dynamoDB = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' });
-const NodeCache = require('node-cache');
-const userCache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
 
 const app = express();
 const port = 8080;
@@ -736,7 +734,7 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 });
 
 // Fetch news feed posts
-app.get('/api/newsfeed', verifyToken, async (req, res) => {
+app.get('/api/newsfeed', verifyToken, (req, res) => {
     const loggedInUserId = req.user.userId;
     const { lastPostTimestamp } = req.query; // For pagination
 
@@ -778,34 +776,16 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
             try {
                 const data = await dynamoDB.query(params).promise();
                 for (let post of data.Items) {
-                    // Check if user data is cached
-                    let userData = userCache.get(post.userId);
-                    if (!userData) {
-                        // Fetch user data from SQL database if not cached
-                        const userQuery = 'SELECT first_name, username, profilePictureKey FROM users WHERE userId = ?';
-                        const [userResult] = await db.promise().query(userQuery, [post.userId]);
-                        if (userResult.length > 0) {
-                            userData = userResult[0];
-                            userCache.set(post.userId, userData);
-                        }
+                    // Presign user profile picture URL
+                    if (post.profilePictureKey) {
+                        const profilePicParams = {
+                            Bucket: 'cloudhive-userdata',
+                            Key: post.profilePictureKey,
+                            Expires: 3600 // 1 hour expiration (in seconds)
+                        };
+                        post.userProfilePicture = await s3.getSignedUrlPromise('getObject', profilePicParams);
+                        console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
                     }
-
-                    if (userData) {
-                        post.firstName = userData.first_name;
-                        post.username = userData.username;
-
-                        // Presign user profile picture URL
-                        if (userData.profilePictureKey) {
-                            const profilePicParams = {
-                                Bucket: 'cloudhive-userdata',
-                                Key: userData.profilePictureKey,
-                                Expires: 3600 // 1 hour expiration (in seconds)
-                            };
-                            post.userProfilePicture = await s3.getSignedUrlPromise('getObject', profilePicParams);
-                            console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
-                        }
-                    }
-
                     // Presign post image URL
                     if (post.postImageKey) {
                         const postImageParams = {
