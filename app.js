@@ -749,11 +749,10 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
             return res.status(500).json({ message: 'Failed to fetch followed users' });
         }
 
-        if (followResults.length === 0) {
-            return res.json({ Items: [], LastEvaluatedKey: null });
-        }
+        // Include the logged-in user's ID in the list of followed users
+        const followedUserIds = new Set(followResults.map(row => row.followed_id.toString()));
+        followedUserIds.add(loggedInUserId.toString());
 
-        const followedUserIds = followResults.map(row => row.followed_id.toString());
         let allPosts = [];
         let lastEvaluatedKeys = {};
 
@@ -768,6 +767,7 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
                 ScanIndexForward: false
             };
 
+            // If lastPostTimestamp is provided, use it for pagination
             if (lastPostTimestamp) {
                 params.KeyConditionExpression += ' AND timestamp < :lastPostTimestamp';
                 params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
@@ -778,22 +778,22 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
                 for (let post of data.Items) {
                     // Presign user profile picture URL
                     if (post.profilePictureKey) {
-                        const params = {
+                        const profilePicParams = {
                             Bucket: 'cloudhive-userdata',
                             Key: post.profilePictureKey,
                             Expires: 3600 // 1 hour expiration (in seconds)
                         };
-                        post.userProfilePicture = await s3.getSignedUrlPromise('getObject', params);
+                        post.userProfilePicture = await s3.getSignedUrlPromise('getObject', profilePicParams);
                         console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
                     }
                     // Presign post image URL
                     if (post.postImageKey) {
-                        const params = {
+                        const postImageParams = {
                             Bucket: 'cloudhive-userdata',
                             Key: post.postImageKey,
                             Expires: 3600 // 1 hour expiration (in seconds)
                         };
-                        post.imageUrl = await s3.getSignedUrlPromise('getObject', params);
+                        post.imageUrl = await s3.getSignedUrlPromise('getObject', postImageParams);
                         console.log(`Generated presigned URL for post image: ${post.imageUrl}`);
                     }
                 }
@@ -807,10 +807,12 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
             }
         }
 
+        // Sort all posts by timestamp in descending order
         allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         const paginatedPosts = allPosts.slice(0, 8);
         const lastPostTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].timestamp : null;
 
+        // Send paginated posts and the last evaluated timestamp for further pagination
         res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
     });
 });
