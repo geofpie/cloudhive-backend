@@ -99,7 +99,7 @@ app.post('/api/register', (req, res) => {
                 const params = {
                     FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveSubscribeUser', 
                     InvocationType: 'Event', // Asynchronous invocation
-                    Payload: JSON.stringify({ email }) // Pass email to the Lambda function
+                    Payload: JSON.stringify({ email })
                 };
 
                 lambda.invoke(params, (lambdaErr, data) => {
@@ -108,6 +108,7 @@ app.post('/api/register', (req, res) => {
                         // Respond with a success message even if Lambda invocation fails
                     } else {
                         console.log('Lambda function invoked successfully:', data);
+                        console.log('email add sent: ', email);
                     }
                 });
 
