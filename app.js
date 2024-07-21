@@ -1001,8 +1001,8 @@ app.get('/api/profilefeed/:username', verifyToken, async (req, res) => {
 
 // Endpoint to like/unlike a post
 app.post('/api/like/:postId', verifyToken, async (req, res) => {
-    const userId = req.user.userId;
-    const postId = req.params.postId;
+    const userId = req.user.userId.toString(); // Convert userId to string
+    const postId = req.params.postId.toString(); // Ensure postId is string
 
     console.log('Received like request');
     console.log('Post ID:', postId);
