@@ -541,7 +541,7 @@ app.post('/api/create_post', verifyToken, upload.single('postImage'), (req, res)
 
 function savePostToDynamoDB(userId, username, content, postImageKey, res) {
     const postId = crypto.randomBytes(16).toString('hex');
-    const timestamp = new Date().toISOString();
+    const postTimestamp = new Date().toISOString();
 
     const params = {
         TableName: 'cloudhive-postdb',
@@ -551,7 +551,7 @@ function savePostToDynamoDB(userId, username, content, postImageKey, res) {
             username: username,
             content: content,
             postImageKey: postImageKey,
-            timestamp: timestamp
+            postTimestamp: postTimestamp
         }
     };
 
