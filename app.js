@@ -849,7 +849,7 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
 
                 // Fetch user profile picture keys in bulk
                 const userIds = [...new Set(data.Items.map(post => post.userId))];
-                const userProfilePicQuery = 'SELECT user_id, profilepic_key FROM users WHERE user_id IN (?)';
+                const userProfilePicQuery = 'SELECT user_id, profilepic_key FROM users WHERE user_id IN ?';
                 const userResults = await new Promise((resolve, reject) => {
                     db.query(userProfilePicQuery, [userIds], (err, results) => {
                         if (err) {
