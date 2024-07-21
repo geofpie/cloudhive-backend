@@ -912,6 +912,45 @@ app.get('/api/profilefeed/:username', verifyToken, async (req, res) => {
     });
 });
 
+app.post('/like', async (req, res) => {
+    const { postId, userId } = req.body;
+
+    try {
+        // Fetch the post from DynamoDB
+        const post = await DynamoDB.get({
+            TableName: 'cloudhive-postdb',
+            Key: { postId }
+        }).promise();
+
+        if (!post.Item) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+
+        // Check if the user has already liked the post
+        if (post.Item.likedBy && post.Item.likedBy.includes(userId)) {
+            return res.status(400).json({ error: 'User has already liked this post' });
+        }
+
+        // Update the likes count and add userId to the likedBy array
+        const updatedLikes = (post.Item.likes || 0) + 1;
+        const updatedLikedBy = [...(post.Item.likedBy || []), userId];
+
+        await DynamoDB.update({
+            TableName: 'cloudhive-postdb',
+            Key: { postId },
+            UpdateExpression: 'set likes = :likes, likedBy = :likedBy',
+            ExpressionAttributeValues: {
+                ':likes': updatedLikes,
+                ':likedBy': updatedLikedBy
+            }
+        }).promise();
+
+        res.json({ success: true, likes: updatedLikes });
+    } catch (error) {
+        console.error('Error liking post:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 // Start server
 app.listen(port, () => {
