@@ -840,7 +840,7 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
 
             // If lastPostTimestamp is provided, use it for pagination
             if (lastPostTimestamp) {
-                params.KeyConditionExpression += ' AND timestamp < :lastPostTimestamp';
+                params.KeyConditionExpression += ' AND postTimestamp < :lastPostTimestamp';
                 params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
             }
 
