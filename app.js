@@ -90,7 +90,7 @@ app.post('/api/register', (req, res) => {
                 console.log('JWT Token Generated:', token);
 
                 // Send the token as part of the response
-                res.cookie('token', token, { httpOnly: true, secure: false }); // change this to true in prod
+                res.cookie('token', token, { httpOnly: true, secure: true });
 
                 console.log('User registered successfully:', result);
                 
