@@ -813,6 +813,9 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
     const loggedInUserId = req.user.userId;
     const { lastPostId } = req.query; // For pagination
 
+    // Log the lastPostId received from the frontend
+    console.log('Received lastPostId:', lastPostId);
+
     const getFollowedUsersQuery = `
         SELECT followed_id
         FROM follows
@@ -850,6 +853,9 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
 
             try {
                 const data = await dynamoDB.query(params).promise();
+
+                // Log the result of the DynamoDB query
+                console.log('Fetched posts data from DynamoDB:', data);
 
                 const getUserProfileDataQuery = 'SELECT profilepic_key, first_name FROM users WHERE user_id = ?';
                 const userProfileDataResults = await Promise.all(data.Items.map(post => {
@@ -916,7 +922,10 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
         allPosts.sort((a, b) => b.postTimestamp.localeCompare(a.postTimestamp));
         const paginatedPosts = allPosts.slice(0, 8);
 
+        // Log the paginated posts and lastPostId for debugging
+        console.log('Paginated posts:', paginatedPosts);
         const lastPostIdValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postId : null;
+        console.log('LastPostId to be sent to frontend:', lastPostIdValue);
 
         res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostIdValue });
     });
