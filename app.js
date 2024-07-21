@@ -95,13 +95,15 @@ app.post('/api/register', (req, res) => {
 
                 console.log('User registered successfully:', result);
 
-                // Prepare payload
-                const payload = JSON.stringify({ email });
+                // Prepare payload for Lambda function
+                const payload = JSON.stringify({
+                    body: { email }
+                });
                 console.log('Payload to Lambda:', payload);
 
                 // Invoke Lambda function to subscribe user to SNS topic
                 const params = {
-                    FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveSubscribeUser', // Lambda function name
+                    FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveSubscribeUser', 
                     InvocationType: 'Event', // Asynchronous invocation
                     Payload: payload 
                 };
