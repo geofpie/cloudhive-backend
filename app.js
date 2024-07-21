@@ -1037,6 +1037,9 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
         const likeResult = await dynamoDB.get(checkLikeParams).promise();
         console.log('Like check result:', JSON.stringify(likeResult, null, 2));
 
+        let responseMessage;
+        let updatedLikeCount;
+
         if (likeResult.Item) {
             // User has already liked the post, so we remove the like
             const removeLikeParams = {
@@ -1053,12 +1056,13 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
                 Key: { userId: originalPosterId, postId: postId },
                 UpdateExpression: 'ADD #likes :val',
                 ExpressionAttributeNames: { '#likes': 'likes' },
-                ExpressionAttributeValues: { ':val': -1 }
+                ExpressionAttributeValues: { ':val': -1 },
+                ReturnValues: 'UPDATED_NEW'
             };
             console.log('Updating like count:', JSON.stringify(updateParams, null, 2));
-            await dynamoDB.update(updateParams).promise();
-
-            res.status(200).send('Like removed');
+            const updateResult = await dynamoDB.update(updateParams).promise();
+            updatedLikeCount = updateResult.Attributes.likes;
+            responseMessage = 'Like removed';
         } else {
             // User has not liked the post, so we add the like
             const addLikeParams = {
@@ -1075,19 +1079,21 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
                 Key: { userId: originalPosterId, postId: postId },
                 UpdateExpression: 'ADD #likes :val',
                 ExpressionAttributeNames: { '#likes': 'likes' },
-                ExpressionAttributeValues: { ':val': 1 }
+                ExpressionAttributeValues: { ':val': 1 },
+                ReturnValues: 'UPDATED_NEW'
             };
             console.log('Updating like count:', JSON.stringify(updateParams, null, 2));
-            await dynamoDB.update(updateParams).promise();
-
-            res.status(200).send('Like added');
+            const updateResult = await dynamoDB.update(updateParams).promise();
+            updatedLikeCount = updateResult.Attributes.likes;
+            responseMessage = 'Like added';
         }
+
+        res.status(200).json({ message: responseMessage, likes: updatedLikeCount });
     } catch (error) {
         console.error('Error processing like request:', error);
         res.status(500).send('Internal Server Error');
     }
 });
-
 
 app.use((req, res) => {
     res.redirect('/');
