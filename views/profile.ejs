@@ -48,17 +48,17 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item hive-nav-btn">
-                    <a class="nav-link" href="/hive">Hive <span class="sr-only">(current)</span></a>
+                    <a class="nav-link" href="/hive"><img src="assets/homeicon.svg" class="nav-icons"></a>
                 </li>
                 <li class="nav-item hive-nav-btn">
-                    <a class="nav-link" href="#">Friends</a>
+                    <a class="nav-link" href="#"><img src="assets/friends.svg" class="nav-icons"></a>
                 </li>
                 <li class="nav-item hive-nav-btn">
-                    <a class="nav-link" href="#">Settings</a>
+                    <a class="nav-link" href="#"><img src="assets/settings.svg" class="nav-icons"></a>
                 </li>
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="#" id="notifications-link"><i class="fa fa-bell"></i></a>
+                        <a class="nav-link" href="#" id="notifications-link"><img src="assets/notifications.svg" class="nav-icons"></a>
                     </li>
                 </ul>
                 <% if (loggedInUser.username === user.username) { %>
@@ -165,7 +165,7 @@
     <div id="postModal" class="post-modal hidden">
         <div class="post-modal-content">
             <div class="post-modal-header">
-                <h2>Write a Post</h2>
+                <h2 class="post-modal-title">Share something</h2>
                 <button id="closeModal" class="custom-modal-close">&times;</button>
             </div>
             <div class="post-modal-body">
@@ -174,10 +174,10 @@
                         <textarea class="form-control" id="postContent" rows="3" placeholder="What's on your mind?"></textarea>
                     </div>
                     <div class="form-group">
-                        <button type="button" id="attachImageButton" class="btn btn-secondary">Attach Image</button>
+                        <button type="button" id="attachImageButton" class="btn attach-image-btn"><i class="fa fa-image"></i> Share an Image</button>
                         <input type="file" id="postImage" class="form-control-file" style="display: none;">
                     </div>
-                    <img id="imagePreview" src="#" alt="Image Preview" style="display: none; max-width: 100%;">
+                    <img id="imagePreview" src="#" alt="Image Preview" class="upload-img-preview" style="display: none;">
                 </form>
                 <!-- Upload indicator -->
                 <div id="uploadIndicator" class="upload-indicator hidden">
@@ -188,8 +188,7 @@
                 </div>
             </div>
             <div class="post-modal-footer">
-                <button type="button" id="closeModalFooter" class="btn btn-secondary">Close</button>
-                <button type="button" id="submitPostButton" class="btn btn-primary">Post</button>
+                <button type="button" id="submitPostButton" class="btn btn-primary send-post-btn">Post</button>
             </div>
         </div>
     </div>
