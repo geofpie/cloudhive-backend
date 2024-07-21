@@ -97,7 +97,7 @@ app.post('/api/register', (req, res) => {
 
                 // Invoke Lambda function to subscribe user to SNS topic
                 const params = {
-                    FunctionName: 'cloudhiveSubscribeUser', // Lambda function name (you can also use ARN)
+                    FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveSubscribeUser', 
                     InvocationType: 'Event', // Asynchronous invocation
                     Payload: JSON.stringify({ email }) // Pass email to the Lambda function
                 };
