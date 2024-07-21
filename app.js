@@ -224,6 +224,7 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
 
         // Log the fetched user information
         console.log('User information fetched:', userInfo);
+        console.log(req.user.email);
 
         // Generate presigned URL for profile picture
         const profilePictureKey = userInfo.profilepic_key;
@@ -334,7 +335,8 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
                 lambda.invoke(lambdaParams, (lambdaErr, data) => {
                     if (lambdaErr) {
                         console.error('Error invoking Lambda function:', lambdaErr);
-                        // You might want to handle this error in a more user-friendly way
+                        console.log(req.user.email);
+                        console.log(payload);
                     } else {
                         console.log('Lambda function invoked successfully:', data);
                         console.log(payload);
