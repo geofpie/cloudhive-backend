@@ -912,7 +912,7 @@ app.get('/api/profilefeed/:username', verifyToken, async (req, res) => {
     });
 });
 
-app.post('/like', async (req, res) => {
+app.post('/api/like', async (req, res) => {
     const { postId, userId } = req.body;
 
     try {
