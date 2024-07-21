@@ -840,22 +840,22 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
             try {
                 const data = await dynamoDB.query(params).promise();
 
-                // Fetch user profile picture key for each post
-                const getUserProfilePicQuery = 'SELECT profilepic_key FROM users WHERE user_id = ?';
-                const userProfilePicKeyResults = await Promise.all(data.Items.map(post => {
+                // Fetch user profile picture key and first name for each post
+                const getUserProfileDataQuery = 'SELECT profilepic_key, first_name FROM users WHERE user_id = ?';
+                const userProfileDataResults = await Promise.all(data.Items.map(post => {
                     return new Promise((resolve, reject) => {
-                        db.query(getUserProfilePicQuery, [post.userId], (err, userResults) => {
+                        db.query(getUserProfileDataQuery, [post.userId], (err, userResults) => {
                             if (err) {
-                                console.error('Error fetching user profile picture key:', err);
+                                console.error('Error fetching user profile data:', err);
                                 reject(err);
                             } else {
-                                resolve({ post, profilepic_key: userResults[0]?.profilepic_key });
+                                resolve({ post, profilepic_key: userResults[0]?.profilepic_key, first_name: userResults[0]?.first_name });
                             }
                         });
                     });
                 }));
 
-                for (const { post, profilepic_key } of userProfilePicKeyResults) {
+                for (const { post, profilepic_key, first_name } of userProfileDataResults) {
                     // Presign user profile picture URL
                     if (profilepic_key) {
                         const profilePicParams = {
@@ -876,6 +876,8 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                         post.imageUrl = await s3.getSignedUrlPromise('getObject', postImageParams);
                         console.log(`Generated presigned URL for post image: ${post.imageUrl}`);
                     }
+                    // Add first name to the post object
+                    post.firstName = first_name;
                 }
 
                 allPosts = allPosts.concat(data.Items);
