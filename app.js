@@ -810,7 +810,7 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 });
 
 app.get('/api/newsfeed', verifyToken, async (req, res) => {
-    const loggedInUserId = req.user.userId;
+    const loggedInUserId = req.user.userId; // Ensure this is a string
     const { lastPostId } = req.query; // For pagination
 
     const getFollowedUsersQuery = `
@@ -891,8 +891,8 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                     const params = {
                         TableName: 'cloudhive-likes',
                         Key: {
-                            postId: post.postId,
-                            userId: loggedInUserId
+                            postId: post.postId.toString(), // Ensure postId is a string
+                            userId: loggedInUserId.toString() // Ensure userId is a string
                         }
                     };
                     return dynamoDB.get(params).promise().then(result => ({
