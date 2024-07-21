@@ -17,7 +17,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
 const dynamoDB = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' });
-const lambda = new AWS.lambda();
+const lambda = new AWS.Lambda();
 
 const app = express();
 const port = 8080;
