@@ -635,7 +635,7 @@ app.get('/api/follow/:username', verifyToken, async (req, res) => {
                 // Invoke Lambda function to notify the user about the follow request
                 const lambda = new AWS.Lambda();
                 const lambdaParams = {
-                    FunctionName: 'cloudhiveNotifyFollowRequest', // Replace with your Lambda function name or ARN
+                    FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveUserFollowedNotification',
                     InvocationType: 'Event',
                     Payload: JSON.stringify({
                         email: profileUser.email,
