@@ -999,6 +999,67 @@ app.get('/api/profilefeed/:username', verifyToken, async (req, res) => {
     });
 });
 
+// Endpoint to like/unlike a post
+app.post('/api/like/:postId', verifyToken, async (req, res) => {
+    const userId = req.user.userId;
+    const postId = req.params.postId;
+
+    try {
+        // Check if the user has already liked the post
+        const checkLikeParams = {
+            TableName: 'cloudhive-likes',
+            Key: { postId: postId, userId: userId }
+        };
+
+        const likeResult = await dynamoDB.get(checkLikeParams).promise();
+
+        if (likeResult.Item) {
+            // User has already liked the post, so we remove the like
+            const removeLikeParams = {
+                TableName: 'cloudhive-likes',
+                Key: { postId: postId, userId: userId }
+            };
+
+            await dynamoDB.delete(removeLikeParams).promise();
+
+            // Update post like count in cloudhive-postdb
+            const updateParams = {
+                TableName: 'cloudhive-postdb',
+                Key: { userId: req.user.username, postId: postId },
+                UpdateExpression: 'ADD #likes :val',
+                ExpressionAttributeNames: { '#likes': 'likes' },
+                ExpressionAttributeValues: { ':val': -1 }
+            };
+            await dynamoDB.update(updateParams).promise();
+
+            res.status(200).send('Like removed');
+        } else {
+            // User has not liked the post, so we add the like
+            const addLikeParams = {
+                TableName: 'cloudhive-likes',
+                Item: { postId: postId, userId: userId }
+            };
+
+            await dynamoDB.put(addLikeParams).promise();
+
+            // Update post like count in cloudhive-postdb
+            const updateParams = {
+                TableName: 'cloudhive-postdb',
+                Key: { userId: req.user.username, postId: postId },
+                UpdateExpression: 'ADD #likes :val',
+                ExpressionAttributeNames: { '#likes': 'likes' },
+                ExpressionAttributeValues: { ':val': 1 }
+            };
+            await dynamoDB.update(updateParams).promise();
+
+            res.status(200).send('Like added');
+        }
+    } catch (error) {
+        console.error('Error processing like request:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
 app.use((req, res) => {
     res.redirect('/');
 });
