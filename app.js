@@ -337,6 +337,7 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
                         // You might want to handle this error in a more user-friendly way
                     } else {
                         console.log('Lambda function invoked successfully:', data);
+                        console.log(payload);
                     }
                 });
 
