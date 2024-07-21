@@ -805,7 +805,7 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 
 app.get('/api/newsfeed', verifyToken, async (req, res) => {
     const loggedInUserId = req.user.userId;
-    const { lastPostId } = req.query; // For pagination
+    const { lastEvaluatedKey } = req.query; // For pagination
 
     const getFollowedUsersQuery = `
         SELECT followed_id
@@ -824,7 +824,6 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
         followedUserIds.add(loggedInUserId.toString());
 
         let allPosts = [];
-        let lastEvaluatedKeys = {};
 
         for (const userId of followedUserIds) {
             const params = {
@@ -837,10 +836,12 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                 ScanIndexForward: false // Sort by postId descending
             };
 
-            // If lastPostId is provided, use it for pagination
-            if (lastPostId) {
-                params.KeyConditionExpression += ' AND postId < :lastPostId';
-                params.ExpressionAttributeValues[':lastPostId'] = lastPostId;
+            // If lastEvaluatedKey is provided, use it for pagination
+            if (lastEvaluatedKey) {
+                params.ExclusiveStartKey = {
+                    userId: userId,
+                    postId: lastEvaluatedKey
+                };
             }
 
             try {
@@ -885,9 +886,6 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                 }
 
                 allPosts = allPosts.concat(data.Items);
-                if (data.LastEvaluatedKey) {
-                    lastEvaluatedKeys[userId] = data.LastEvaluatedKey;
-                }
             } catch (err) {
                 console.error('Error fetching posts:', err);
                 return res.status(500).json({ message: 'Failed to fetch posts' });
