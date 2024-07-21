@@ -17,6 +17,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
 const dynamoDB = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' });
+const lambda = new AWS.lambda();
 
 const app = express();
 const port = 8080;
@@ -93,7 +94,23 @@ app.post('/api/register', (req, res) => {
                 res.cookie('token', token, { httpOnly: true, secure: true });
 
                 console.log('User registered successfully:', result);
-                
+
+                // Invoke Lambda function to subscribe user to SNS topic
+                const params = {
+                    FunctionName: 'cloudhiveSubscribeUser', // Lambda function ARN or name
+                    InvocationType: 'Event', // Asynchronous invocation
+                    Payload: JSON.stringify({ email }) // Pass email to the Lambda function
+                };
+
+                lambda.invoke(params, (lambdaErr, data) => {
+                    if (lambdaErr) {
+                        console.error('Error invoking Lambda function:', lambdaErr);
+                        // You might want to handle this error in a more user-friendly way
+                    } else {
+                        console.log('Lambda function invoked successfully:', data);
+                    }
+                });
+
                 // Notify user registration is successful
                 res.status(200).json({ message: 'User registered successfully', token });
             });
