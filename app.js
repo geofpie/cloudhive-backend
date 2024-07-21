@@ -929,6 +929,10 @@ app.get('/api/profilefeed/:username', verifyToken, async (req, res) => {
     });
 });
 
+app.use((req, res) => {
+    res.redirect('/');
+});
+
 // Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
