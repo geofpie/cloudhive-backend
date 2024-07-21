@@ -1009,6 +1009,22 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
     console.log('User ID:', userId);
 
     try {
+        // Retrieve the post to get the original poster's userId
+        const getPostParams = {
+            TableName: 'cloudhive-postdb',
+            Key: { userId: req.user.username, postId: postId }
+        };
+
+        console.log('Fetching post to get original poster\'s userId:', JSON.stringify(getPostParams, null, 2));
+        const postResult = await dynamoDB.get(getPostParams).promise();
+
+        if (!postResult.Item) {
+            return res.status(404).send('Post not found');
+        }
+
+        const originalPosterId = postResult.Item.userId;
+        console.log('original poster id: ', originalPosterId);
+
         // Check if the user has already liked the post
         const checkLikeParams = {
             TableName: 'cloudhive-likes',
@@ -1032,7 +1048,7 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
             // Update post like count in cloudhive-postdb
             const updateParams = {
                 TableName: 'cloudhive-postdb',
-                Key: { userId: req.user.username, postId: postId },
+                Key: { userId: originalPosterId, postId: postId },
                 UpdateExpression: 'ADD #likes :val',
                 ExpressionAttributeNames: { '#likes': 'likes' },
                 ExpressionAttributeValues: { ':val': -1 }
@@ -1054,7 +1070,7 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
             // Update post like count in cloudhive-postdb
             const updateParams = {
                 TableName: 'cloudhive-postdb',
-                Key: { userId: req.user.username, postId: postId },
+                Key: { userId: originalPosterId, postId: postId },
                 UpdateExpression: 'ADD #likes :val',
                 ExpressionAttributeNames: { '#likes': 'likes' },
                 ExpressionAttributeValues: { ':val': 1 }
