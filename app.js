@@ -811,10 +811,10 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 
 app.get('/api/newsfeed', verifyToken, async (req, res) => {
     const loggedInUserId = req.user.userId;
-    const { lastPostTimestamp } = req.query; // Changed from lastPostId to lastPostTimestamp
+    const { lastTimestamp } = req.query; // Use lastTimestamp from frontend
 
-    // Log the lastPostTimestamp received from the frontend
-    console.log('Received lastPostTimestamp:', lastPostTimestamp);
+    // Log the lastTimestamp received from the frontend
+    console.log('Received lastTimestamp:', lastTimestamp);
 
     const getFollowedUsersQuery = `
         SELECT followed_id
@@ -845,9 +845,9 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                 ScanIndexForward: false // Descending order
             };
 
-            if (lastPostTimestamp) {
-                params.KeyConditionExpression += ' AND postTimestamp < :lastPostTimestamp';
-                params.ExpressionAttributeValues[':lastPostTimestamp'] = lastPostTimestamp;
+            if (lastTimestamp) {
+                params.KeyConditionExpression += ' AND postTimestamp < :lastTimestamp';
+                params.ExpressionAttributeValues[':lastTimestamp'] = lastTimestamp;
             }
 
             try {
@@ -919,15 +919,15 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
         }
 
         // Sort and paginate posts
-        allPosts.sort((a, b) => b.postTimestamp.localeCompare(a.postTimestamp));
+        allPosts.sort((a, b) => new Date(b.postTimestamp).getTime() - new Date(a.postTimestamp).getTime());
         const paginatedPosts = allPosts.slice(0, 8);
 
-        // Log the paginated posts and lastPostTimestamp for debugging
+        // Log the paginated posts and lastTimestamp for debugging
         console.log('Paginated posts:', paginatedPosts);
-        const lastPostTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postTimestamp : null;
-        console.log('LastPostTimestamp to be sent to frontend:', lastPostTimestampValue);
+        const lastTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postTimestamp : null;
+        console.log('LastTimestamp to be sent to frontend:', lastTimestampValue);
 
-        res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
+        res.json({ Items: paginatedPosts, LastEvaluatedKey: lastTimestampValue });
     });
 });
 
