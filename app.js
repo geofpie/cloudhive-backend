@@ -803,10 +803,9 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
     });
 });
 
-// Fetch news feed posts
-app.get('/api/newsfeed', verifyToken, (req, res) => {
+app.get('/api/newsfeed', verifyToken, async (req, res) => {
     const loggedInUserId = req.user.userId;
-    const { lastPostTimestamp } = req.query; // For pagination
+    const { lastPostId } = req.query; // For pagination
 
     const getFollowedUsersQuery = `
         SELECT followed_id
@@ -835,13 +834,13 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
                     ':userId': userId
                 },
                 Limit: 8,
-                ScanIndexForward: false
+                ScanIndexForward: false // Sort by postId descending
             };
 
-            // If lastPostTimestamp is provided, use it for pagination
-            if (lastPostTimestamp) {
-                params.KeyConditionExpression += ' AND postTimestamp < :lastPostTimestamp';
-                params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
+            // If lastPostId is provided, use it for pagination
+            if (lastPostId) {
+                params.KeyConditionExpression += ' AND postId < :lastPostId';
+                params.ExpressionAttributeValues[':lastPostId'] = lastPostId;
             }
 
             try {
@@ -895,13 +894,13 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
             }
         }
 
-        // Sort all posts by timestamp in descending order
-        allPosts.sort((a, b) => new Date(b.postTimestamp) - new Date(a.postTimestamp));
+        // Sort all posts by postId in descending order
+        allPosts.sort((a, b) => b.postId.localeCompare(a.postId));
         const paginatedPosts = allPosts.slice(0, 8);
-        const lastPostTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postTimestamp : null;
+        const lastPostIdValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postId : null;
 
-        // Send paginated posts and the last evaluated timestamp for further pagination
-        res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
+        // Send paginated posts and the last evaluated postId for further pagination
+        res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostIdValue });
     });
 });
 
