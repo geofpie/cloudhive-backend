@@ -100,7 +100,7 @@ app.post('/api/register', (req, res) => {
                     body: JSON.stringify({ email })
                 };
 
-                // Invoke Lambda function to subscribe user to SNS topic
+                // Invoke Lambda function to subscribe user to SNS topic for cloudhive 
                 const params = {
                     FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveSubscribeUser', 
                     InvocationType: 'Event', // Asynchronous invocation
@@ -110,13 +110,11 @@ app.post('/api/register', (req, res) => {
                 lambda.invoke(params, (lambdaErr, data) => {
                     if (lambdaErr) {
                         console.error('Error invoking Lambda function:', lambdaErr);
-                        // You might want to handle this error in a more user-friendly way
                     } else {
                         console.log('Lambda function invoked successfully:', data);
                     }
                 });
 
-                // Notify user registration is successful
                 res.status(200).json({ message: 'User registered successfully', token });
             });
         });
@@ -284,11 +282,11 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
 
     // Create S3 upload parameters
     const params = {
-        Bucket: 'cloudhive-userdata', 
+        Bucket: 'cloudhive-userdata',
         Key: profilePicKey,
         Body: req.file.buffer,
         ContentType: req.file.mimetype,
-        ACL: 'private' 
+        ACL: 'private'
     };
 
     // Log the S3 upload parameters
@@ -310,18 +308,44 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
         const country = req.body.country;
 
         // Update user information in the database
-        db.query('UPDATE users SET profile_pic = ?, profilepic_key = ?, first_name = ?, last_name = ?, country = ? WHERE user_id = ?', 
-            [profilePicUrl, profilePicKey, firstName, lastName, country, req.user.userId], 
+        db.query('UPDATE users SET profile_pic = ?, profilepic_key = ?, first_name = ?, last_name = ?, country = ? WHERE user_id = ?',
+            [profilePicUrl, profilePicKey, firstName, lastName, country, req.user.userId],
             (err, result) => {
                 if (err) {
                     console.error('Error updating user information in database:', err);
                     return res.status(500).json({ error: 'Failed to update user information' });
                 }
 
+                // Prepare payload for Lambda
+                const payload = {
+                    body: JSON.stringify({
+                        email: req.user.email, // Assuming you have the email in req.user
+                        username: req.user.username
+                    })
+                };
+
+                // Invoke Lambda function to send a welcome email
+                const lambdaParams = {
+                    FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveWelcomeEmail', 
+                    InvocationType: 'Event', // Asynchronous invocation
+                    Payload: JSON.stringify(payload)
+                };
+
+                lambda.invoke(lambdaParams, (lambdaErr, data) => {
+                    if (lambdaErr) {
+                        console.error('Error invoking Lambda function:', lambdaErr);
+                        // You might want to handle this error in a more user-friendly way
+                    } else {
+                        console.log('Lambda function invoked successfully:', data);
+                    }
+                });
+
+                // Notify user registration is successful
                 res.status(200).json({ message: 'Profile picture and user information updated successfully', profilePicUrl });
             });
     });
 });
+
 
 app.get('/:username', verifyToken, (req, res) => {
     const username = req.params.username;
