@@ -811,10 +811,10 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 
 app.get('/api/newsfeed', verifyToken, async (req, res) => {
     const loggedInUserId = req.user.userId;
-    const { lastPostId } = req.query; // For pagination
+    const { lastPostTimestamp } = req.query; // Changed from lastPostId to lastPostTimestamp
 
-    // Log the lastPostId received from the frontend
-    console.log('Received lastPostId:', lastPostId);
+    // Log the lastPostTimestamp received from the frontend
+    console.log('Received lastPostTimestamp:', lastPostTimestamp);
 
     const getFollowedUsersQuery = `
         SELECT followed_id
@@ -836,19 +836,18 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
         for (const userId of followedUserIds) {
             const params = {
                 TableName: 'cloudhive-postdb',
+                IndexName: 'userId-postTimestamp-index',
                 KeyConditionExpression: 'userId = :userId',
                 ExpressionAttributeValues: {
                     ':userId': userId
                 },
                 Limit: 8,
-                ScanIndexForward: false
+                ScanIndexForward: false // Descending order
             };
 
-            if (lastPostId) {
-                params.ExclusiveStartKey = {
-                    userId: userId,
-                    postId: lastPostId
-                };
+            if (lastPostTimestamp) {
+                params.KeyConditionExpression += ' AND postTimestamp < :lastPostTimestamp';
+                params.ExpressionAttributeValues[':lastPostTimestamp'] = lastPostTimestamp;
             }
 
             try {
@@ -919,15 +918,16 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
             }
         }
 
+        // Sort and paginate posts
         allPosts.sort((a, b) => b.postTimestamp.localeCompare(a.postTimestamp));
         const paginatedPosts = allPosts.slice(0, 8);
 
-        // Log the paginated posts and lastPostId for debugging
+        // Log the paginated posts and lastPostTimestamp for debugging
         console.log('Paginated posts:', paginatedPosts);
-        const lastPostIdValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postId : null;
-        console.log('LastPostId to be sent to frontend:', lastPostIdValue);
+        const lastPostTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postTimestamp : null;
+        console.log('LastPostTimestamp to be sent to frontend:', lastPostTimestampValue);
 
-        res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostIdValue });
+        res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
     });
 });
 
