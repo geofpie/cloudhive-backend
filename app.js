@@ -565,7 +565,6 @@ function savePostToDynamoDB(userId, username, content, postImageKey, res) {
     });
 }
 
-// Endpoint to initiate a follow request
 app.get('/api/follow/:username', verifyToken, async (req, res) => {
     if (!req.user || !req.user.userId || !req.user.username) {
         console.error('Error: Invalid user information in req.user');
@@ -632,17 +631,24 @@ app.get('/api/follow/:username', verifyToken, async (req, res) => {
 
                 console.log(`Follow request from ${followerUsername} to ${followedUsername} initiated successfully`);
 
+                // Prepare Lambda invocation payload
+                const lambdaPayload = {
+                    body: JSON.stringify({
+                        email: profileUser.email, // Email of the requested user
+                        followerUsername: followerUsername
+                    })
+                };
+
+                console.log('Lambda Payload:', lambdaPayload);
+
                 // Prepare Lambda invocation
                 const lambdaParams = {
                     FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveUserFollowedNotification',
                     InvocationType: 'Event',
-                    Payload: JSON.stringify({
-                        body: JSON.stringify({
-                            email: profileUser.email,
-                            followerUsername: followerUsername
-                        })
-                    })
+                    Payload: JSON.stringify(lambdaPayload)
                 };
+
+                console.log('Lambda Invocation Params:', lambdaParams);
 
                 // Invoke Lambda function
                 lambda.invoke(lambdaParams, (lambdaErr, lambdaData) => {
