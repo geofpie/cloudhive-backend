@@ -95,20 +95,22 @@ app.post('/api/register', (req, res) => {
 
                 console.log('User registered successfully:', result);
 
+                // Prepare payload
+                const payload = JSON.stringify({ email });
+                console.log('Payload to Lambda:', payload);
+
                 // Invoke Lambda function to subscribe user to SNS topic
                 const params = {
-                    FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveSubscribeUser', 
+                    FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveSubscribeUser', // Lambda function name
                     InvocationType: 'Event', // Asynchronous invocation
-                    Payload: JSON.stringify({ email })
+                    Payload: payload 
                 };
 
                 lambda.invoke(params, (lambdaErr, data) => {
                     if (lambdaErr) {
                         console.error('Error invoking Lambda function:', lambdaErr);
-                        // Respond with a success message even if Lambda invocation fails
                     } else {
                         console.log('Lambda function invoked successfully:', data);
-                        console.log('email add sent: ', email);
                     }
                 });
 
