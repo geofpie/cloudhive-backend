@@ -838,9 +838,15 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                     ':userId': userId
                 },
                 Limit: 8,
-                ScanIndexForward: false,
-                ExclusiveStartKey: lastPostId ? { userId: userId, postId: lastPostId } : undefined
+                ScanIndexForward: false
             };
+
+            if (lastPostId) {
+                params.ExclusiveStartKey = {
+                    userId: userId,
+                    postId: lastPostId
+                };
+            }
 
             try {
                 const data = await dynamoDB.query(params).promise();
