@@ -886,6 +886,30 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                     post.firstName = first_name;
                 }
 
+                // Fetch liked status for the posts
+                const likedPostsPromises = data.Items.map(post => {
+                    const params = {
+                        TableName: 'cloudhive-likes',
+                        Key: {
+                            postId: post.postId,
+                            userId: loggedInUserId
+                        }
+                    };
+                    return dynamoDB.get(params).promise().then(result => ({
+                        postId: post.postId,
+                        isLiked: !!result.Item
+                    }));
+                });
+
+                const likedPostsResults = await Promise.all(likedPostsPromises);
+
+                const likedPostsMap = new Map(likedPostsResults.map(result => [result.postId, result.isLiked]));
+
+                for (const post of data.Items) {
+                    // Add liked status to the post object
+                    post.isLiked = likedPostsMap.get(post.postId) || false;
+                }
+
                 allPosts = allPosts.concat(data.Items);
             } catch (err) {
                 console.error('Error fetching posts:', err);
