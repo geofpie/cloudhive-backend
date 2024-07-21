@@ -805,7 +805,7 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 
 app.get('/api/newsfeed', verifyToken, async (req, res) => {
     const loggedInUserId = req.user.userId;
-    const { lastEvaluatedKey } = req.query; // For pagination
+    const { lastPostId } = req.query; // For pagination
 
     const getFollowedUsersQuery = `
         SELECT followed_id
@@ -833,16 +833,9 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                     ':userId': userId
                 },
                 Limit: 8,
-                ScanIndexForward: false // Sort by postId descending
+                ScanIndexForward: false, // To get the most recent posts
+                ExclusiveStartKey: lastPostId ? { userId: userId, postId: lastPostId } : undefined // Pagination
             };
-
-            // If lastEvaluatedKey is provided, use it for pagination
-            if (lastEvaluatedKey) {
-                params.ExclusiveStartKey = {
-                    userId: userId,
-                    postId: lastEvaluatedKey
-                };
-            }
 
             try {
                 const data = await dynamoDB.query(params).promise();
@@ -894,7 +887,8 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
 
         // Sort all posts by postId in descending order
         allPosts.sort((a, b) => b.postTimestamp.localeCompare(a.postTimestamp));
-        const paginatedPosts = allPosts.slice(0, 8);
+        const paginatedPosts = allPosts.slice(0, 8); // This will get the latest posts if more than 8 posts are available
+
         const lastPostIdValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postId : null;
 
         // Send paginated posts and the last evaluated postId for further pagination
