@@ -1004,6 +1004,10 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
     const userId = req.user.userId;
     const postId = req.params.postId;
 
+    console.log('Received like request');
+    console.log('Post ID:', postId);
+    console.log('User ID:', userId);
+
     try {
         // Check if the user has already liked the post
         const checkLikeParams = {
@@ -1011,7 +1015,9 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
             Key: { postId: postId, userId: userId }
         };
 
+        console.log('Checking if user has already liked the post:', checkLikeParams);
         const likeResult = await dynamoDB.get(checkLikeParams).promise();
+        console.log('Like check result:', likeResult);
 
         if (likeResult.Item) {
             // User has already liked the post, so we remove the like
@@ -1020,6 +1026,7 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
                 Key: { postId: postId, userId: userId }
             };
 
+            console.log('Removing like:', removeLikeParams);
             await dynamoDB.delete(removeLikeParams).promise();
 
             // Update post like count in cloudhive-postdb
@@ -1030,6 +1037,7 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
                 ExpressionAttributeNames: { '#likes': 'likes' },
                 ExpressionAttributeValues: { ':val': -1 }
             };
+            console.log('Updating like count:', updateParams);
             await dynamoDB.update(updateParams).promise();
 
             res.status(200).send('Like removed');
@@ -1040,6 +1048,7 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
                 Item: { postId: postId, userId: userId }
             };
 
+            console.log('Adding like:', addLikeParams);
             await dynamoDB.put(addLikeParams).promise();
 
             // Update post like count in cloudhive-postdb
@@ -1050,6 +1059,7 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
                 ExpressionAttributeNames: { '#likes': 'likes' },
                 ExpressionAttributeValues: { ':val': 1 }
             };
+            console.log('Updating like count:', updateParams);
             await dynamoDB.update(updateParams).promise();
 
             res.status(200).send('Like added');
