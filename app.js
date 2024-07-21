@@ -17,7 +17,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
 const dynamoDB = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' });
-const lambda = new AWS.Lambda();
+const lambda = new AWS.Lambda({region: 'us-east-1'});
 
 const app = express();
 const port = 8080;
@@ -27,7 +27,6 @@ const s3 = new AWS.S3({
     region: 'us-east-1', 
     signatureVersion: 'v4'
 });
-AWS.config.update({ region: 'us-east-1' });
 
 const upload = multer({ storage: multer.memoryStorage() });
 
