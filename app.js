@@ -624,7 +624,7 @@ app.get('/api/follow/:username', verifyToken, async (req, res) => {
                 INSERT INTO follows (follower_id, followed_id, status)
                 VALUES (?, ?, 'requested')
             `;
-            db.query(insertFollowQuery, [followerId, profileUser.user_id], async (err, result) => {
+            db.query(insertFollowQuery, [followerId, profileUser.user_id], (err, result) => {
                 if (err) {
                     console.error('Error inserting follow request:', err);
                     return res.status(500).send('Error inserting follow request');
@@ -632,17 +632,19 @@ app.get('/api/follow/:username', verifyToken, async (req, res) => {
 
                 console.log(`Follow request from ${followerUsername} to ${followedUsername} initiated successfully`);
 
-                // Invoke Lambda function to notify the user about the follow request
-                const lambda = new AWS.Lambda();
+                // Prepare Lambda invocation
                 const lambdaParams = {
                     FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveUserFollowedNotification',
                     InvocationType: 'Event',
                     Payload: JSON.stringify({
-                        email: profileUser.email,
-                        followerUsername: followerUsername
+                        body: JSON.stringify({
+                            email: profileUser.email,
+                            followerUsername: followerUsername
+                        })
                     })
                 };
 
+                // Invoke Lambda function
                 lambda.invoke(lambdaParams, (lambdaErr, lambdaData) => {
                     if (lambdaErr) {
                         console.error('Error invoking Lambda function:', lambdaErr);
@@ -656,6 +658,7 @@ app.get('/api/follow/:username', verifyToken, async (req, res) => {
         });
     });
 });
+
 app.get('/api/approve-follow/:username', (req, res) => {
     const requesteeUsername = req.session.username;  // Assuming you store the logged-in username in the session
     const requesterUsername = req.params.username;
