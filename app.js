@@ -804,7 +804,7 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 });
 
 // Fetch news feed posts
-app.get('/api/newsfeed', verifyToken, (req, res) => {
+app.get('/api/newsfeed', verifyToken, async (req, res) => {
     const loggedInUserId = req.user.userId;
     const { lastPostTimestamp } = req.query; // For pagination
 
@@ -840,34 +840,40 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
 
             // If lastPostTimestamp is provided, use it for pagination
             if (lastPostTimestamp) {
-                params.KeyConditionExpression += ' AND timestamp < :lastPostTimestamp';
+                params.KeyConditionExpression += ' AND postTimestamp < :lastPostTimestamp';
                 params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
             }
 
             try {
                 const data = await dynamoDB.query(params).promise();
 
-                // Fetch user profile picture key for each post
-                const getUserProfilePicQuery = 'SELECT profilepic_key FROM users WHERE user_id = ?';
-                const userProfilePicKeyResults = await Promise.all(data.Items.map(post => {
-                    return new Promise((resolve, reject) => {
-                        db.query(getUserProfilePicQuery, [post.userId], (err, userResults) => {
-                            if (err) {
-                                console.error('Error fetching user profile picture key:', err);
-                                reject(err);
-                            } else {
-                                resolve({ post, profilepic_key: userResults[0]?.profilepic_key });
-                            }
-                        });
+                // Fetch user profile picture keys in bulk
+                const userIds = [...new Set(data.Items.map(post => post.userId))];
+                const userProfilePicQuery = 'SELECT user_id, profilepic_key FROM users WHERE user_id IN (?)';
+                const userResults = await new Promise((resolve, reject) => {
+                    db.query(userProfilePicQuery, [userIds], (err, results) => {
+                        if (err) {
+                            console.error('Error fetching user profile picture keys:', err);
+                            reject(err);
+                        } else {
+                            resolve(results);
+                        }
                     });
-                }));
+                });
 
-                for (const { post, profilepic_key } of userProfilePicKeyResults) {
+                // Map user profile picture keys
+                const userProfilePicMap = userResults.reduce((acc, row) => {
+                    acc[row.user_id] = row.profilepic_key;
+                    return acc;
+                }, {});
+
+                for (const post of data.Items) {
                     // Presign user profile picture URL
-                    if (profilepic_key) {
+                    const profilePicKey = userProfilePicMap[post.userId];
+                    if (profilePicKey) {
                         const profilePicParams = {
                             Bucket: 'cloudhive-userdata',
-                            Key: profilepic_key,
+                            Key: profilePicKey,
                             Expires: 3600 // 1 hour expiration (in seconds)
                         };
                         post.userProfilePicture = await s3.getSignedUrlPromise('getObject', profilePicParams);
@@ -895,10 +901,10 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
             }
         }
 
-        // Sort all posts by timestamp in descending order
-        allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        // Sort all posts by postTimestamp in descending order
+        allPosts.sort((a, b) => new Date(b.postTimestamp) - new Date(a.postTimestamp));
         const paginatedPosts = allPosts.slice(0, 8);
-        const lastPostTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].timestamp : null;
+        const lastPostTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postTimestamp : null;
 
         // Send paginated posts and the last evaluated timestamp for further pagination
         res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
