@@ -806,7 +806,8 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 // Fetch news feed posts
 app.get('/api/newsfeed', verifyToken, async (req, res) => {
     const loggedInUserId = req.user.userId;
-    const { lastEvaluatedKey } = req.query; // For pagination
+    let { lastEvaluatedKey } = req.query; // For pagination
+    lastEvaluatedKey = lastEvaluatedKey ? JSON.parse(lastEvaluatedKey) : null; // Parse if present
 
     const getFollowedUsersQuery = `
         SELECT followed_id
@@ -838,7 +839,7 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                 },
                 Limit: 8,
                 ScanIndexForward: false,
-                ExclusiveStartKey: lastEvaluatedKey ? JSON.parse(lastEvaluatedKey) : undefined // Handle pagination
+                ExclusiveStartKey: lastEvaluatedKey // Handle pagination
             };
 
             try {
@@ -895,7 +896,7 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
         // Sort all posts by timestamp in descending order
         allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         const paginatedPosts = allPosts.slice(0, 8);
-        const lastEvaluatedKeyValue = paginatedPosts.length > 0 ? JSON.stringify(data.LastEvaluatedKey) : null;
+        const lastEvaluatedKeyValue = paginatedPosts.length > 0 ? JSON.stringify(lastEvaluatedKey) : null;
 
         // Send paginated posts and the last evaluated key for further pagination
         res.json({ Items: paginatedPosts, LastEvaluatedKey: lastEvaluatedKeyValue });
