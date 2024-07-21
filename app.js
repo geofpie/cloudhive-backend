@@ -810,7 +810,7 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 });
 
 app.get('/api/newsfeed', verifyToken, async (req, res) => {
-    const loggedInUserId = req.user.userId; // Ensure this is a string
+    const loggedInUserId = req.user.userId;
     const { lastPostId } = req.query; // For pagination
 
     const getFollowedUsersQuery = `
@@ -825,7 +825,6 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
             return res.status(500).json({ message: 'Failed to fetch followed users' });
         }
 
-        // Include the logged-in user's ID in the list of followed users
         const followedUserIds = new Set(followResults.map(row => row.followed_id.toString()));
         followedUserIds.add(loggedInUserId.toString());
 
@@ -839,14 +838,13 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                     ':userId': userId
                 },
                 Limit: 8,
-                ScanIndexForward: false, // To get the most recent posts
-                ExclusiveStartKey: lastPostId ? { userId: userId, postId: lastPostId } : undefined // Pagination
+                ScanIndexForward: false,
+                ExclusiveStartKey: lastPostId ? { userId: userId, postId: lastPostId } : undefined
             };
 
             try {
                 const data = await dynamoDB.query(params).promise();
 
-                // Fetch user profile picture key and first name for each post
                 const getUserProfileDataQuery = 'SELECT profilepic_key, first_name FROM users WHERE user_id = ?';
                 const userProfileDataResults = await Promise.all(data.Items.map(post => {
                     return new Promise((resolve, reject) => {
@@ -861,38 +859,13 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                     });
                 }));
 
-                for (const { post, profilepic_key, first_name } of userProfileDataResults) {
-                    // Presign user profile picture URL
-                    if (profilepic_key) {
-                        const profilePicParams = {
-                            Bucket: 'cloudhive-userdata',
-                            Key: profilepic_key,
-                            Expires: 3600 // 1 hour expiration (in seconds)
-                        };
-                        post.userProfilePicture = await s3.getSignedUrlPromise('getObject', profilePicParams);
-                        console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
-                    }
-                    // Presign post image URL
-                    if (post.postImageKey) {
-                        const postImageParams = {
-                            Bucket: 'cloudhive-userdata',
-                            Key: post.postImageKey,
-                            Expires: 3600 // 1 hour expiration (in seconds)
-                        };
-                        post.imageUrl = await s3.getSignedUrlPromise('getObject', postImageParams);
-                        console.log(`Generated presigned URL for post image: ${post.imageUrl}`);
-                    }
-                    // Add first name to the post object
-                    post.firstName = first_name;
-                }
-
-                // Fetch liked status for the posts
+                // Check if the logged-in user has liked each post
                 const likedPostsPromises = data.Items.map(post => {
                     const params = {
                         TableName: 'cloudhive-likes',
                         Key: {
-                            postId: post.postId.toString(), // Ensure postId is a string
-                            userId: loggedInUserId.toString() // Ensure userId is a string
+                            postId: post.postId.toString(),
+                            userId: loggedInUserId.toString()
                         }
                     };
                     return dynamoDB.get(params).promise().then(result => ({
@@ -901,13 +874,30 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                     }));
                 });
 
-                const likedPostsResults = await Promise.all(likedPostsPromises);
+                const likedPosts = await Promise.all(likedPostsPromises);
 
-                const likedPostsMap = new Map(likedPostsResults.map(result => [result.postId, result.isLiked]));
+                for (const { post, profilepic_key, first_name } of userProfileDataResults) {
+                    if (profilepic_key) {
+                        const profilePicParams = {
+                            Bucket: 'cloudhive-userdata',
+                            Key: profilepic_key,
+                            Expires: 3600
+                        };
+                        post.userProfilePicture = await s3.getSignedUrlPromise('getObject', profilePicParams);
+                    }
+                    if (post.postImageKey) {
+                        const postImageParams = {
+                            Bucket: 'cloudhive-userdata',
+                            Key: post.postImageKey,
+                            Expires: 3600
+                        };
+                        post.imageUrl = await s3.getSignedUrlPromise('getObject', postImageParams);
+                    }
+                    post.firstName = first_name;
 
-                for (const post of data.Items) {
-                    // Add liked status to the post object
-                    post.isLiked = likedPostsMap.get(post.postId) || false;
+                    // Attach `isLiked` status to the post
+                    const likedPost = likedPosts.find(likedPost => likedPost.postId === post.postId);
+                    post.isLiked = likedPost ? likedPost.isLiked : false;
                 }
 
                 allPosts = allPosts.concat(data.Items);
@@ -917,13 +907,11 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
             }
         }
 
-        // Sort all posts by postId in descending order
         allPosts.sort((a, b) => b.postTimestamp.localeCompare(a.postTimestamp));
-        const paginatedPosts = allPosts.slice(0, 8); // This will get the latest posts if more than 8 posts are available
+        const paginatedPosts = allPosts.slice(0, 8);
 
         const lastPostIdValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postId : null;
 
-        // Send paginated posts and the last evaluated postId for further pagination
         res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostIdValue });
     });
 });
