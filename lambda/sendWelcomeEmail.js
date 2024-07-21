@@ -1,11 +1,11 @@
 import { SNSClient, SubscribeCommand } from "@aws-sdk/client-sns";
 
-const snsClient = new SNSClient({ region: 'us-east-1' }); // Replace with your region
+const snsClient = new SNSClient({ region: 'us-east-1' });
 
 export const handler = async (event) => {
     const { email, username } = JSON.parse(event.body);
 
-    const topicArn = 'arn:aws:sns:us-east-1:576047115698:cloudhiveUserRegistration'; // Replace with your SNS topic ARN
+    const topicArn = 'arn:aws:sns:us-east-1:576047115698:cloudhiveWelcomeEmail';
 
     // Parameters to subscribe the email address to the SNS topic
     const subscribeParams = {

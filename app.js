@@ -566,8 +566,7 @@ function savePostToDynamoDB(userId, username, content, postImageKey, res) {
 }
 
 // Endpoint to initiate a follow request
-app.get('/api/follow/:username', verifyToken, (req, res) => {
-    // Ensure req.user is correctly populated after authentication
+app.get('/api/follow/:username', verifyToken, async (req, res) => {
     if (!req.user || !req.user.userId || !req.user.username) {
         console.error('Error: Invalid user information in req.user');
         return res.status(401).send('Unauthorized');
@@ -582,8 +581,8 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
     console.log(`Followed Username: ${followedUsername}`);
 
     // Fetch profile user information from database
-    const getProfileUserQuery = 'SELECT user_id, username FROM users WHERE username = ?';
-    db.query(getProfileUserQuery, [followedUsername], (err, results) => {
+    const getProfileUserQuery = 'SELECT user_id, username, email FROM users WHERE username = ?';
+    db.query(getProfileUserQuery, [followedUsername], async (err, results) => {
         if (err) {
             console.error('Error fetching profile user information:', err);
             return res.status(500).send('Internal Server Error');
@@ -625,19 +624,38 @@ app.get('/api/follow/:username', verifyToken, (req, res) => {
                 INSERT INTO follows (follower_id, followed_id, status)
                 VALUES (?, ?, 'requested')
             `;
-            db.query(insertFollowQuery, [followerId, profileUser.user_id], (err, result) => {
+            db.query(insertFollowQuery, [followerId, profileUser.user_id], async (err, result) => {
                 if (err) {
                     console.error('Error inserting follow request:', err);
                     return res.status(500).send('Error inserting follow request');
                 }
 
                 console.log(`Follow request from ${followerUsername} to ${followedUsername} initiated successfully`);
+
+                // Invoke Lambda function to notify the user about the follow request
+                const lambda = new AWS.Lambda();
+                const lambdaParams = {
+                    FunctionName: 'cloudhiveNotifyFollowRequest', // Replace with your Lambda function name or ARN
+                    InvocationType: 'Event',
+                    Payload: JSON.stringify({
+                        email: profileUser.email,
+                        followerUsername: followerUsername
+                    })
+                };
+
+                lambda.invoke(lambdaParams, (lambdaErr, lambdaData) => {
+                    if (lambdaErr) {
+                        console.error('Error invoking Lambda function:', lambdaErr);
+                    } else {
+                        console.log('Lambda function invoked successfully:', lambdaData);
+                    }
+                });
+
                 res.status(200).send('Follow request initiated');
             });
         });
     });
 });
-
 app.get('/api/approve-follow/:username', (req, res) => {
     const requesteeUsername = req.session.username;  // Assuming you store the logged-in username in the session
     const requesterUsername = req.params.username;
