@@ -85,7 +85,7 @@ app.post('/api/register', (req, res) => {
                 }
 
                 const userId = result.insertId;
-                const token = jwt.sign({ userId, username }, JWT_SECRET, { expiresIn: '1h' });
+                const token = jwt.sign({ userId, username, email }, JWT_SECRET, { expiresIn: '1h' });
 
                 // Log token generation
                 console.log('JWT Token Generated:', token);
@@ -167,7 +167,7 @@ app.post('/api/login_redirect', (req, res) => {
             }
 
             // Generate JWT token
-            const token = jwt.sign({ userId: user.user_id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign({ userId: user.user_id, username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
 
             // Log token generation
             console.log('JWT Token Generated:', token);
