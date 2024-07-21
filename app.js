@@ -893,7 +893,7 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
         }
 
         // Sort all posts by postId in descending order
-        allPosts.sort((a, b) => b.postId.localeCompare(a.postId));
+        allPosts.sort((a, b) => b.postTimestamp.localeCompare(a.postTimestamp));
         const paginatedPosts = allPosts.slice(0, 8);
         const lastPostIdValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postId : null;
 
