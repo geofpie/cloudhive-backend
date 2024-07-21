@@ -759,27 +759,23 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
         for (const userId of followedUserIds) {
             const params = {
                 TableName: 'cloudhive-postdb',
-                KeyConditionExpression: '#userId = :userId AND #timestamp < :lastPostTimestamp',
-                ExpressionAttributeNames: {
-                    '#userId': 'userId',
-                    '#timestamp': 'timestamp'
-                },
+                KeyConditionExpression: 'userId = :userId',
                 ExpressionAttributeValues: {
-                    ':userId': userId,
-                    ':lastPostTimestamp': parseInt(lastPostTimestamp, 10)
+                    ':userId': userId
                 },
                 Limit: 8,
                 ScanIndexForward: false
             };
-            
-            // If lastPostTimestamp is not provided, modify the KeyConditionExpression accordingly
-            if (!lastPostTimestamp) {
-                params.KeyConditionExpression = '#userId = :userId';
-                delete params.ExpressionAttributeValues[':lastPostTimestamp'];
+
+            // If lastPostTimestamp is provided, use it for pagination
+            if (lastPostTimestamp) {
+                params.KeyConditionExpression += ' AND timestamp < :lastPostTimestamp';
+                params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
             }
-            
+
             try {
                 const data = await dynamoDB.query(params).promise();
+
                 // Fetch user profile picture key for each post
                 const getUserProfilePicQuery = 'SELECT profilepic_key FROM users WHERE user_id = ?';
                 const userProfilePicKeyResults = await Promise.all(data.Items.map(post => {
@@ -794,7 +790,7 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
                         });
                     });
                 }));
-            
+
                 for (const { post, profilepic_key } of userProfilePicKeyResults) {
                     // Presign user profile picture URL
                     if (profilepic_key) {
@@ -817,7 +813,7 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
                         console.log(`Generated presigned URL for post image: ${post.imageUrl}`);
                     }
                 }
-            
+
                 allPosts = allPosts.concat(data.Items);
                 if (data.LastEvaluatedKey) {
                     lastEvaluatedKeys[userId] = data.LastEvaluatedKey;
@@ -825,7 +821,7 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
             } catch (err) {
                 console.error('Error fetching posts:', err);
                 return res.status(500).json({ message: 'Failed to fetch posts' });
-            }            
+            }
         }
 
         // Sort all posts by timestamp in descending order
