@@ -804,15 +804,16 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 });
 
 // Fetch news feed posts
-app.get('/api/newsfeed', verifyToken, (req, res) => {
+app.get('/api/newsfeed', verifyToken, async (req, res) => {
     const loggedInUserId = req.user.userId;
-    const { lastPostTimestamp } = req.query; // For pagination
+    const { lastEvaluatedKey } = req.query; // For pagination
 
     const getFollowedUsersQuery = `
         SELECT followed_id
         FROM follows
         WHERE follower_id = ? AND status = 'following'
     `;
+
     db.query(getFollowedUsersQuery, [loggedInUserId], async (err, followResults) => {
         if (err) {
             console.error('Error fetching followed users:', err);
@@ -824,24 +825,21 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
         followedUserIds.add(loggedInUserId.toString());
 
         let allPosts = [];
-        let lastEvaluatedKeys = {};
 
         for (const userId of followedUserIds) {
             const params = {
                 TableName: 'cloudhive-postdb',
-                KeyConditionExpression: 'userId = :userId',
+                KeyConditionExpression: '#userId = :userId',
+                ExpressionAttributeNames: {
+                    '#userId': 'userId' // Alias for the reserved keyword
+                },
                 ExpressionAttributeValues: {
                     ':userId': userId
                 },
                 Limit: 8,
-                ScanIndexForward: false
+                ScanIndexForward: false,
+                ExclusiveStartKey: lastEvaluatedKey ? JSON.parse(lastEvaluatedKey) : undefined // Handle pagination
             };
-
-            // If lastPostTimestamp is provided, use it for pagination
-            if (lastPostTimestamp) {
-                params.KeyConditionExpression += ' AND timestamp < :lastPostTimestamp';
-                params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
-            }
 
             try {
                 const data = await dynamoDB.query(params).promise();
@@ -886,7 +884,7 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
 
                 allPosts = allPosts.concat(data.Items);
                 if (data.LastEvaluatedKey) {
-                    lastEvaluatedKeys[userId] = data.LastEvaluatedKey;
+                    lastEvaluatedKey = JSON.stringify(data.LastEvaluatedKey); // Update lastEvaluatedKey for further pagination
                 }
             } catch (err) {
                 console.error('Error fetching posts:', err);
@@ -897,10 +895,10 @@ app.get('/api/newsfeed', verifyToken, (req, res) => {
         // Sort all posts by timestamp in descending order
         allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         const paginatedPosts = allPosts.slice(0, 8);
-        const lastPostTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].timestamp : null;
+        const lastEvaluatedKeyValue = paginatedPosts.length > 0 ? JSON.stringify(data.LastEvaluatedKey) : null;
 
-        // Send paginated posts and the last evaluated timestamp for further pagination
-        res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
+        // Send paginated posts and the last evaluated key for further pagination
+        res.json({ Items: paginatedPosts, LastEvaluatedKey: lastEvaluatedKeyValue });
     });
 });
 
