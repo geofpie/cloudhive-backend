@@ -27,6 +27,7 @@ const s3 = new AWS.S3({
     region: 'us-east-1', 
     signatureVersion: 'v4'
 });
+AWS.config.update({ region: 'us-east-1' });
 
 const upload = multer({ storage: multer.memoryStorage() });
 
