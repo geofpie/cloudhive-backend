@@ -1010,20 +1010,22 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
 
     try {
         // Retrieve the post to get the original poster's userId
-        const getPostParams = {
+        const scanPostParams = {
             TableName: 'cloudhive-postdb',
-            Key: { userId: req.user.username, postId: postId }
+            FilterExpression: 'postId = :postId',
+            ExpressionAttributeValues: { ':postId': postId }
         };
 
-        console.log('Fetching post to get original poster\'s userId:', JSON.stringify(getPostParams, null, 2));
-        const postResult = await dynamoDB.get(getPostParams).promise();
+        console.log('Fetching post to get original poster\'s userId:', JSON.stringify(scanPostParams, null, 2));
+        const postResult = await dynamoDB.scan(scanPostParams).promise();
+        console.log('postresult: ', postResult);
 
-        if (!postResult.Item) {
+        if (postResult.Items.length === 0) {
             return res.status(404).send('Post not found');
         }
 
-        const originalPosterId = postResult.Item.userId;
-        console.log('original poster id: ', originalPosterId);
+        const postItem = postResult.Items[0];
+        const originalPosterId = postItem.userId;
 
         // Check if the user has already liked the post
         const checkLikeParams = {
@@ -1085,6 +1087,7 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
 
 app.use((req, res) => {
     res.redirect('/');
