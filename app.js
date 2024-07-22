@@ -931,13 +931,16 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
     });
 });
 
-// Fetch profile feed posts
-app.get('/api/profilefeed/:username', verifyToken, async (req, res) => {
-    const loggedInUserId = req.user.user_id;
-    const { lastPostTimestamp } = req.query; // For pagination
+app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
     const { username } = req.params;
+    const { lastTimestamp } = req.query; // Use lastTimestamp from frontend
+    const loggedInUserId = req.user.userId;
 
-    // Fetch the userId of the profile being viewed
+    // Log the username and lastTimestamp received from the frontend
+    console.log('Received username:', username);
+    console.log('Received lastTimestamp:', lastTimestamp);
+
+    // Get user ID from username
     const getUserIdQuery = 'SELECT user_id FROM users WHERE username = ?';
     db.query(getUserIdQuery, [username], async (err, userResults) => {
         if (err) {
@@ -949,79 +952,123 @@ app.get('/api/profilefeed/:username', verifyToken, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const profileUserId = userResults[0].user_id.toString();
+        const userId = userResults[0].user_id.toString();
 
-        // Check if the logged-in user is viewing their own profile or is following the profile user
-        const getFollowStatusQuery = `
+        // Check if the logged-in user is following the requested user or it's their own profile
+        const checkFollowQuery = `
             SELECT status
             FROM follows
             WHERE follower_id = ? AND followed_id = ?
         `;
-        db.query(getFollowStatusQuery, [loggedInUserId, profileUserId], async (err, followResults) => {
-            if (err) {
-                console.error('Error checking follow status:', err);
+        
+        db.query(checkFollowQuery, [loggedInUserId, userId], async (followErr, followResults) => {
+            if (followErr) {
+                console.error('Error checking follow status:', followErr);
                 return res.status(500).json({ message: 'Failed to check follow status' });
             }
 
-            const isFollowing = followResults.length > 0 && followResults[0].status === 'following';
-            const isOwnProfile = loggedInUserId === profileUserId;
+            const isFollowing = followResults.some(row => row.status === 'following');
+            const isOwnProfile = loggedInUserId === userId;
 
             if (!isFollowing && !isOwnProfile) {
-                return res.status(403).json({ message: 'You are not allowed to view these posts' });
+                return res.status(403).json({ message: 'Not authorized to view posts' });
             }
+
+            let allPosts = [];
 
             const params = {
                 TableName: 'cloudhive-postdb',
+                IndexName: 'userId-postTimestamp-index',
                 KeyConditionExpression: 'userId = :userId',
                 ExpressionAttributeValues: {
-                    ':userId': profileUserId
+                    ':userId': userId
                 },
                 Limit: 8,
-                ScanIndexForward: false
+                ScanIndexForward: false // Descending order
             };
 
-            if (lastPostTimestamp) {
-                params.KeyConditionExpression += ' AND postTimestamp < :lastPostTimestamp';
-                params.ExpressionAttributeValues[':lastPostTimestamp'] = parseInt(lastPostTimestamp, 10);
+            if (lastTimestamp) {
+                params.KeyConditionExpression += ' AND postTimestamp < :lastTimestamp';
+                params.ExpressionAttributeValues[':lastTimestamp'] = lastTimestamp;
             }
 
             try {
                 const data = await dynamoDB.query(params).promise();
-                const allPosts = [];
 
-                for (let post of data.Items) {
-                    // Presign user profile picture URL
-                    if (post.profilePictureKey) {
-                        const params = {
+                // Log the result of the DynamoDB query
+                console.log('Fetched posts data from DynamoDB:', data);
+
+                const getUserProfileDataQuery = 'SELECT profilepic_key, first_name FROM users WHERE user_id = ?';
+                const userProfileDataResults = await Promise.all(data.Items.map(post => {
+                    return new Promise((resolve, reject) => {
+                        db.query(getUserProfileDataQuery, [post.userId], (err, userResults) => {
+                            if (err) {
+                                console.error('Error fetching user profile data:', err);
+                                reject(err);
+                            } else {
+                                resolve({ post, profilepic_key: userResults[0]?.profilepic_key, first_name: userResults[0]?.first_name });
+                            }
+                        });
+                    });
+                }));
+
+                // Check if the logged-in user has liked each post
+                const likedPostsPromises = data.Items.map(post => {
+                    const params = {
+                        TableName: 'cloudhive-likes',
+                        Key: {
+                            postId: post.postId.toString(),
+                            userId: loggedInUserId.toString()
+                        }
+                    };
+                    return dynamoDB.get(params).promise().then(result => ({
+                        postId: post.postId,
+                        isLiked: !!result.Item
+                    }));
+                });
+
+                const likedPosts = await Promise.all(likedPostsPromises);
+
+                for (const { post, profilepic_key, first_name } of userProfileDataResults) {
+                    if (profilepic_key) {
+                        const profilePicParams = {
                             Bucket: 'cloudhive-userdata',
-                            Key: post.profilePictureKey,
-                            Expires: 3600 // 1 hour expiration (in seconds)
+                            Key: profilepic_key,
+                            Expires: 3600
                         };
-                        post.userProfilePicture = await s3.getSignedUrlPromise('getObject', params);
-                        console.log(`Generated presigned URL for profile picture: ${post.userProfilePicture}`);
+                        post.userProfilePicture = await s3.getSignedUrlPromise('getObject', profilePicParams);
                     }
-                    // Presign post image URL
                     if (post.postImageKey) {
-                        const params = {
+                        const postImageParams = {
                             Bucket: 'cloudhive-userdata',
                             Key: post.postImageKey,
-                            Expires: 3600 // 1 hour expiration (in seconds)
+                            Expires: 3600
                         };
-                        post.imageUrl = await s3.getSignedUrlPromise('getObject', params);
-                        console.log(`Generated presigned URL for post image: ${post.imageUrl}`);
+                        post.imageUrl = await s3.getSignedUrlPromise('getObject', postImageParams);
                     }
-                    allPosts.push(post);
+                    post.firstName = first_name;
+
+                    // Attach `isLiked` status to the post
+                    const likedPost = likedPosts.find(likedPost => likedPost.postId === post.postId);
+                    post.isLiked = likedPost ? likedPost.isLiked : false;
                 }
 
-                allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                const paginatedPosts = allPosts.slice(0, 8);
-                const lastPostTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].timestamp : null;
-
-                res.json({ Items: paginatedPosts, LastEvaluatedKey: lastPostTimestampValue });
+                allPosts = allPosts.concat(data.Items);
             } catch (err) {
                 console.error('Error fetching posts:', err);
                 return res.status(500).json({ message: 'Failed to fetch posts' });
             }
+
+            // Sort and paginate posts
+            allPosts.sort((a, b) => new Date(b.postTimestamp).getTime() - new Date(a.postTimestamp).getTime());
+            const paginatedPosts = allPosts.slice(0, 8);
+
+            // Log the paginated posts and lastTimestamp for debugging
+            console.log('Paginated posts:', paginatedPosts);
+            const lastTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postTimestamp : null;
+            console.log('LastTimestamp to be sent to frontend:', lastTimestampValue);
+
+            res.json({ Items: paginatedPosts, LastEvaluatedKey: lastTimestampValue });
         });
     });
 });
