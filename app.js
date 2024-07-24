@@ -934,7 +934,7 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
 app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
     const { username } = req.params;
     const { lastTimestamp } = req.query; // Use lastTimestamp from frontend
-    const loggedInUserId = req.user.user_id;
+    const loggedInUserId = req.user.userId;
     console.log(loggedInUserId);
 
     // Log the username and lastTimestamp received from the frontend
