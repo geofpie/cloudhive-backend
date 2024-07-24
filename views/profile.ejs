@@ -174,46 +174,6 @@
                     </div>
                     <img id="imagePreview" src="#" alt="Image Preview" class="upload-img-preview" style="display: none;">
                 </form>
-    <!-- Edit Profile Modal -->
-    <div id="editProfileModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Edit Profile</h2>
-                <button id="closeModal" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="editProfileForm">
-                    <div class="form-group">
-                        <label for="firstName">First Name:</label>
-                        <input type="text" id="firstName" class="form-control" placeholder="First Name">
-                    </div>
-                    <div class="form-group">
-                        <label for="lastName">Last Name:</label>
-                        <input type="text" id="lastName" class="form-control" placeholder="Last Name">
-                    </div>
-                    <div class="form-group">
-                        <label for="username">Username:</label>
-                        <input type="text" id="username" class="form-control" placeholder="Username">
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email:</label>
-                        <input type="email" id="email" class="form-control" placeholder="Email">
-                    </div>
-                    <div class="form-group">
-                        <label for="profilePicInput">Profile Picture:</label>
-                        <input type="file" id="profilePicInput" class="form-control-file" accept="image/*">
-                        <img id="profilePicPreview" src="#" alt="Profile Picture Preview" style="display: none;">
-                    </div>
-                    <div class="form-group">
-                        <label for="headerPicInput">Header Picture:</label>
-                        <input type="file" id="headerPicInput" class="form-control-file" accept="image/*">
-                        <img id="headerPicPreview" src="#" alt="Header Picture Preview" style="display: none;">
-                    </div>
-                    <button type="button" id="submitEditProfileButton" class="btn btn-primary">Save Changes</button>
-                </form>
-            </div>
-        </div>
-    </div>
                 <!-- Upload indicator -->
                 <div id="uploadIndicator" class="upload-indicator hidden">
                     <div class="spinner-border" role="status">
@@ -227,6 +187,50 @@
             </div>
         </div>
     </div>
+    <!-- Edit Profile Modal -->
+<div id="editProfileModal" class="edit-profile-modal hidden">
+    <div class="edit-profile-modal-content">
+        <div class="edit-profile-modal-header">
+            <h2 class="edit-profile-modal-title">Edit Profile</h2>
+            <button id="closeEditProfileModal" class="edit-profile-modal-close">
+                <img src="assets/closebtn.svg" class="edit-profile-modal-close-icon" alt="Close">
+            </button>
+        </div>
+        <div class="edit-profile-modal-body">
+            <form id="editProfileForm">
+                <div class="form-group">
+                    <label for="firstName">First Name:</label>
+                    <input type="text" id="firstName" class="form-control" placeholder="First Name">
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name:</label>
+                    <input type="text" id="lastName" class="form-control" placeholder="Last Name">
+                </div>
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" class="form-control" placeholder="Username">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" class="form-control" placeholder="Email">
+                </div>
+                <div class="form-group">
+                    <label for="profilePicInput">Profile Picture:</label>
+                    <input type="file" id="profilePicInput" class="form-control-file" accept="image/*">
+                    <img id="profilePicPreview" src="#" alt="Profile Picture Preview" style="display: none;">
+                </div>
+                <div class="form-group">
+                    <label for="headerPicInput">Header Picture:</label>
+                    <input type="file" id="headerPicInput" class="form-control-file" accept="image/*">
+                    <img id="headerPicPreview" src="#" alt="Header Picture Preview" style="display: none;">
+                </div>
+            </form>
+        </div>
+        <div class="edit-profile-modal-footer">
+            <button type="button" id="submitEditProfileButton" class="btn btn-primary">Save Changes</button>
+        </div>
+    </div>
+</div>
 </body>
 <footer>
     <div class="container">
