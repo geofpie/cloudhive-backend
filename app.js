@@ -1180,6 +1180,75 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
     }
 });
 
+app.post('/api/user/updateProfile', upload.fields([{ name: 'profilePic', maxCount: 1 }, { name: 'headerPic', maxCount: 1 }]), async (req, res) => {
+    const { firstName, lastName, username, email } = req.body;
+    const { profilePic, headerPic } = req.files;
+    const userId = req.user.userId;
+
+    try {
+        // Fetch old profile and header picture keys from the database
+        const userQuery = 'SELECT profile_pic, profile_header FROM users WHERE user_id = ?';
+        const [user] = await db.query(userQuery, [userId]);
+
+        // Remove old pictures from S3 if applicable
+        if (user.profile_pic) {
+            const oldProfilePicParams = {
+                Bucket: 'cloudhive-userdata',
+                Key: user.profile_pic
+            };
+            await s3.deleteObject(oldProfilePicParams).promise();
+        }
+
+        if (user.profile_header) {
+            const oldHeaderPicParams = {
+                Bucket: 'cloudhive-userdata',
+                Key: user.profile_header
+            };
+            await s3.deleteObject(oldHeaderPicParams).promise();
+        }
+
+        // Upload new profile picture
+        let profilePicKey = user.profile_pic; // Keep old key if no new picture
+        if (profilePic) {
+            const profilePicParams = {
+                Bucket: 'cloudhive-userdata',
+                Key: `profile-pics/${userId}-${Date.now()}.png`,
+                Body: profilePic[0].buffer,
+                ContentType: profilePic[0].mimetype
+            };
+            const profilePicUpload = await s3.upload(profilePicParams).promise();
+            profilePicKey = profilePicUpload.Key;
+        }
+
+        // Upload new header picture
+        let headerPicKey = user.profile_header; // Keep old key if no new picture
+        if (headerPic) {
+            const headerPicParams = {
+                Bucket: 'cloudhive-userdata',
+                Key: `header-pics/${userId}-${Date.now()}.png`,
+                Body: headerPic[0].buffer,
+                ContentType: headerPic[0].mimetype
+            };
+            const headerPicUpload = await s3.upload(headerPicParams).promise();
+            headerPicKey = headerPicUpload.Key;
+        }
+
+        // Update user information in the database
+        const updateUserQuery = `
+            UPDATE users
+            SET first_name = ?, last_name = ?, username = ?, email = ?,
+                profile_pic = ?, profile_header = ?
+            WHERE user_id = ?
+        `;
+        await db.query(updateUserQuery, [firstName, lastName, username, email, profilePicKey, headerPicKey, userId]);
+
+        res.json({ message: 'Profile updated successfully' });
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ message: 'Failed to update profile' });
+    }
+});
+
 app.use((req, res) => {
     res.redirect('/');
 });
