@@ -935,7 +935,6 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
     const { username } = req.params;
     const { lastTimestamp } = req.query; // Use lastTimestamp from frontend
     const loggedInUserId = req.user.userId;
-    console.log(loggedInUserId);
 
     // Log the username and lastTimestamp received from the frontend
     console.log('Received username:', username);
@@ -958,6 +957,8 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
 
         // Log the fetched user ID
         console.log('Fetched user ID:', userId);
+        console.log('Type of fetched user ID:', typeof userId);
+        console.log('Type of logged-in user ID:', typeof loggedInUserId);
 
         // Check if the logged-in user is following the requested user or it's their own profile
         const checkFollowQuery = `
