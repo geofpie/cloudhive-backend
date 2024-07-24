@@ -109,7 +109,7 @@
                         <p class="profile-stat profile-user-following-count" id="profile-user-following-count"><strong><%= user.followingCount || 0 %></strong> following</p>
                         <% if (loggedInUser.username === user.username) { %>
                             <!-- Show edit profile button -->
-                            <button class="profile-stat hive-user-action"><i class="fa fa-edit"></i>Edit Profile</button>
+                            <button class="profile-stat hive-user-action" id="edit-profile"><i class="fa fa-edit"></i>Edit Profile</button>
                         <% } else { %>
                             <!-- Show follow button -->
                             <% if (followStatus === 'requested') { %>
