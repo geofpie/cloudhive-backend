@@ -142,7 +142,7 @@
             <div class="col"></div>
         </div>
         <% } %>        
-        <div class="row hive-feed-area d-flex" id="hive-feed-area">
+        <div class="row d-flex">
             <% if (followStatus === 'following' || loggedInUser.username === user.username) { %>
                 <button id="load-more">Load More</button>
             <% } else if (followStatus !== 'following' || followStatus === 'requested' || followStatus === '') { %>
@@ -151,6 +151,9 @@
                     <h3 class="user-followed-header">Follow <%= user.username %> to view their posts, and get connected.</h3>
                 </div>
             <% } %>
+        </div>
+        <div class="hive-feed-area" id="hive-feed-area">
+            <!-- Posts go here -->
         </div>
         </div>
     <!-- Create Post Modal -->
