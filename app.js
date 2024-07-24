@@ -1253,6 +1253,10 @@ app.use((req, res) => {
     res.redirect('/');
 });
 
+app.get('/api/healthcheck', (req, res) => {
+    res.status(200).json({ message: 'OK' });
+});
+
 // Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
