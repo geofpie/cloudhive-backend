@@ -142,7 +142,7 @@
             <div class="col"></div>
         </div>
         <% } %>        
-        <div class="row hive-feed-area d-flex mx-auto" id="hive-feed-area">
+        <div class="row hive-feed-area d-flex" id="hive-feed-area">
             <% if (followStatus === 'following' || loggedInUser.username === user.username) { %>
                 <button id="load-more">Load More</button>
             <% } else if (followStatus !== 'following' || followStatus === 'requested' || followStatus === '') { %>
