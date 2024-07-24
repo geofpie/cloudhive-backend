@@ -975,6 +975,7 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
 
             const isFollowing = followResults.some(row => row.status === 'following');
             const isOwnProfile = loggedInUserId === userId;
+            console.log('loggedinuid: ', loggedInUserId, 'userid: ', userId);
 
             // Log the follow status and ownership status
             console.log('Is following:', isFollowing);
