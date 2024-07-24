@@ -960,6 +960,8 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
             FROM follows
             WHERE follower_id = ? AND followed_id = ?
         `;
+
+        console.log('follower id: ', follower_id, 'followed id: ', followed_id);
         
         db.query(checkFollowQuery, [loggedInUserId, userId], async (followErr, followResults) => {
             if (followErr) {
