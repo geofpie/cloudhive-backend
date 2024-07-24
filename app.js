@@ -939,6 +939,7 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
     // Log the username and lastTimestamp received from the frontend
     console.log('Received username:', username);
     console.log('Received lastTimestamp:', lastTimestamp);
+    console.log('Logged-in user ID:', loggedInUserId);
 
     // Get user ID from username
     const getUserIdQuery = 'SELECT user_id FROM users WHERE username = ?';
@@ -954,6 +955,9 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
 
         const userId = userResults[0].user_id.toString();
 
+        // Log the fetched user ID
+        console.log('Fetched user ID:', userId);
+
         // Check if the logged-in user is following the requested user or it's their own profile
         const checkFollowQuery = `
             SELECT status
@@ -961,8 +965,6 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
             WHERE follower_id = ? AND followed_id = ?
         `;
 
-        console.log('follower id: ', follower_id, 'followed id: ', followed_id);
-        
         db.query(checkFollowQuery, [loggedInUserId, userId], async (followErr, followResults) => {
             if (followErr) {
                 console.error('Error checking follow status:', followErr);
@@ -971,6 +973,10 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
 
             const isFollowing = followResults.some(row => row.status === 'following');
             const isOwnProfile = loggedInUserId === userId;
+
+            // Log the follow status and ownership status
+            console.log('Is following:', isFollowing);
+            console.log('Is own profile:', isOwnProfile);
 
             if (!isFollowing && !isOwnProfile) {
                 return res.status(403).json({ message: 'Not authorized to view posts' });
