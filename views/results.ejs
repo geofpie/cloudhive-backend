@@ -38,9 +38,9 @@
         </button>
       
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <form class="form-inline my-2 my-lg-0" action="#">
+            <form class="form-inline my-2 my-lg-0" action="/search" method="GET">
                 <div class="input-group hive-searchbar-group">
-                    <input class="form-control hive-searchbar" type="search" placeholder="Search" aria-label="Search">
+                    <input class="form-control hive-searchbar" type="search" name="query" placeholder="Search" aria-label="Search">
                     <div class="input-group-append">
                         <button class="btn hive-searchbar-btn" type="submit">
                             <i class="fa fa-search hive-searchbar-btn-icon"></i>
@@ -61,16 +61,18 @@
                 <li class="nav-item">
                         <a class="nav-link" href="#" id="notifications-link"><img src="assets/notifications.svg" class="nav-icons"></a>
                 </li>
-                <% if (loggedInUser.username === user.username) { %>
-                    <li class="nav-item hive-nav-btn active">
-                        <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#">{user}</a>
-                    </li> 
-                <% } else { %>
-                    <li class="nav-item hive-nav-btn">
-                        <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#">{user}</a>
-                    </li>
-                 <% } %>
-                 <li class="nav-item hive-nav-btn">
+                <% if (loggedInUser) { %>
+                    <% if (loggedInUser.username === user.username) { %>
+                        <li class="nav-item hive-nav-btn active">
+                            <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#"><%= loggedInUser.username %></a>
+                        </li> 
+                    <% } else { %>
+                        <li class="nav-item hive-nav-btn">
+                            <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#"><%= loggedInUser.username %></a>
+                        </li>
+                    <% } %>
+                <% } %>
+                <li class="nav-item hive-nav-btn">
                     <img src="../assets/default-profile.jpg" alt="Profile" class="navbar-profile-pic">
                 </li>
             </ul>
@@ -114,3 +116,4 @@
     </div>
 </body>
 </html>
+``
