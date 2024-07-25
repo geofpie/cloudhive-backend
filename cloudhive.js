@@ -1328,15 +1328,17 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
 });
 
 app.get('/api/search', verifyToken, (req, res) => {
-    const query = req.query.query; // Access the query parameter
+    const query = req.query.query;
 
     if (!query) {
         return res.status(400).send('No search query provided');
     }
 
+    // Retrieve the logged-in user information from the session or token
+    const loggedInUser = req.user; // Adjust according to your authentication setup
+
     console.log(`Search query: ${query}`);
 
-    // Query to search for users
     const searchQuery = `
         SELECT username, first_name, last_name, profilepic_key
         FROM users
@@ -1352,7 +1354,6 @@ app.get('/api/search', verifyToken, (req, res) => {
 
         console.log('Search results:', results);
 
-        // Generate presigned URLs for profile pictures
         const s3Promises = results.map(user => {
             if (user.profilepic_key) {
                 const params = {
@@ -1378,8 +1379,8 @@ app.get('/api/search', verifyToken, (req, res) => {
         });
 
         Promise.all(s3Promises).then(users => {
-            // Render the search results page with users
-            res.render('results', { users });
+            // Render the search results page with users and loggedInUser
+            res.render('search_results', { users, loggedInUser });
         }).catch(err => {
             console.error('Error during S3 operations:', err);
             res.status(500).send('Internal Server Error');
