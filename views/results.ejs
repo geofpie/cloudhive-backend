@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results</title>
+    <!-- Add your CSS here -->
+</head>
+<body>
+    <h1>Search Results</h1>
+    <div class="container">
+        <div class="row">
+            <% users.forEach(user => { %>
+                <div class="col-md-4">
+                    <div class="card">
+                        <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" class="card-img-top" alt="Profile Picture">
+                        <div class="card-body">
+                            <h5 class="card-title"><%= user.first_name %> <%= user.last_name %></h5>
+                            <p class="card-text">@<%= user.username %></p>
+                            <a href="/<%= user.username %>" class="btn btn-primary">View Profile</a>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+</body>
+</html>
