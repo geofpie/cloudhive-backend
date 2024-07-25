@@ -1201,7 +1201,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
     console.log('Received header picture:', headerPic);
 
     // Fetch the current user data
-    db.query('SELECT profile_pic_key, profile_header_key FROM users WHERE user_id = ?', [userId], (err, results) => {
+    db.query('SELECT profilepic_key, profile_header_key FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
             console.error('Error fetching user data:', err);
             return res.status(500).json({ error: 'Failed to fetch user data' });
@@ -1241,7 +1241,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
         if (profilePic) {
             // Upload new profile picture and delete old one if exists
             s3Operations.push(uploadToS3(profilePic, 'profile_pic').then(data => {
-                updates.profile_pic_key = data.Key;
+                updates.profilepic_key = data.Key;
                 updates.profile_pic_url = data.Location; // Save the URL
                 console.log('Profile picture uploaded to S3 with URL:', data.Location);
 
