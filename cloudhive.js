@@ -38,6 +38,10 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
+app.get('/api/healthcheck', (req, res) => {
+    res.status(200).json({ message: 'OK' });
+});
+
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -1251,10 +1255,6 @@ app.post('/api/user/updateProfile', upload.fields([{ name: 'profilePic', maxCoun
 
 app.use((req, res) => {
     res.redirect('/');
-});
-
-app.get('/api/healthcheck', (req, res) => {
-    res.status(200).json({ message: 'OK' });
 });
 
 // Start server
