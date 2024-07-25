@@ -1200,115 +1200,99 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
     console.log('Received profile picture:', profilePic);
     console.log('Received header picture:', headerPic);
 
-    app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic', maxCount: 1 }, { name: 'headerPic', maxCount: 1 }]), (req, res) => {
-        console.log('Request user:', req.user); // Log req.user to check its content
-    
-        if (!req.user || !req.user.userId) {
-            return res.status(401).json({ error: 'User not authenticated' });
+    // Fetch the current user data
+    db.query('SELECT profilepic_key, profile_header_key FROM users WHERE user_id = ?', [userId], (err, results) => {
+        if (err) {
+            console.error('Error fetching user data:', err);
+            return res.status(500).json({ error: 'Failed to fetch user data' });
         }
-    
-        const userId = req.user.userId;
-        const { firstName, lastName, username, email } = req.body;
-        const profilePic = req.files['profilePic'] ? req.files['profilePic'][0] : null;
-        const headerPic = req.files['headerPic'] ? req.files['headerPic'][0] : null;
-    
-        console.log(`Updating profile for user ID: ${userId}`);
-        console.log('Received profile picture:', profilePic);
-        console.log('Received header picture:', headerPic);
-    
-        // Fetch the current user data
-        db.query('SELECT profilepic_key, profile_header_key FROM users WHERE user_id = ?', [userId], (err, results) => {
-            if (err) {
-                console.error('Error fetching user data:', err);
-                return res.status(500).json({ error: 'Failed to fetch user data' });
-            }
-    
-            const currentUser = results[0];
-            const oldProfilePicKey = currentUser.profilepic_key;
-            const oldHeaderPicKey = currentUser.profile_header_key;
-    
-            const updates = {
-                first_name: firstName,
-                last_name: lastName,
-                username,
-                email
-            };
-    
-            // Function to upload image to S3
-            const uploadToS3 = (file, folder) => {
-                return s3.upload({
-                    Bucket: 'cloudhive-userdata',
-                    Key: `${folder}/${crypto.randomBytes(12).toString('hex')}.${file.originalname.split('.').pop()}`,
-                    Body: file.buffer,
-                    ContentType: file.mimetype
-                }).promise();
-            };
-    
-            // Function to delete image from S3
-            const deleteFromS3 = (key, folder) => {
-                return s3.deleteObject({
-                    Bucket: 'cloudhive-userdata',
-                    Key: `${folder}/${key}`
-                }).promise();
-            };
-    
-            const s3Operations = [];
-    
-            if (profilePic) {
-                // Upload new profile picture and delete old one if exists
-                s3Operations.push(uploadToS3(profilePic, 'profile_pic').then(data => {
-                    updates.profile_pic_key = data.Key;
-                    updates.profile_pic_url = data.Location; // Save the URL
-                    console.log('Profile picture uploaded to S3 with URL:', data.Location);
-    
-                    if (oldProfilePicKey) {
-                        return deleteFromS3(oldProfilePicKey, 'profile_pic').then(() => {
-                            console.log('Old profile picture deleted from S3');
-                        });
-                    }
-                }));
-            } else {
-                // If no new profile picture, retain the old key and URL
-                updates.profile_pic_key = oldProfilePicKey;
-                updates.profile_pic_url = `https://cloudhive-userdata.s3.amazonaws.com/profile_pic/${oldProfilePicKey}`;
-            }
-    
-            if (headerPic) {
-                // Upload new header picture and delete old one if exists
-                s3Operations.push(uploadToS3(headerPic, 'header_pic').then(data => {
-                    updates.profile_header_key = data.Key;
-                    updates.profile_header = data.Location; // Save the URL
-                    console.log('Header picture uploaded to S3 with URL:', data.Location);
-    
-                    if (oldHeaderPicKey) {
-                        return deleteFromS3(oldHeaderPicKey, 'header_pic').then(() => {
-                            console.log('Old header picture deleted from S3');
-                        });
-                    }
-                }));
-            } else {
-                // If no new header picture, retain the old key and URL
-                updates.profile_header_key = oldHeaderPicKey;
-                updates.profile_header_url = `https://cloudhive-userdata.s3.amazonaws.com/header_pic/${oldHeaderPicKey}`;
-            }
-    
-            // Execute S3 operations and then update the database
-            Promise.all(s3Operations).then(() => {
-                // Update user profile
-                db.query('UPDATE users SET ? WHERE user_id = ?', [updates, userId], (err, results) => {
-                    if (err) {
-                        console.error('Error updating user profile:', err);
-                        return res.status(500).json({ error: 'Failed to update profile' });
-                    }
-    
-                    res.status(200).json({ message: 'Profile updated successfully' });
-                });
-            }).catch(err => {
-                console.error('Error during S3 operations:', err);
-                res.status(500).json({ error: 'Failed to process image uploads' });
+
+        const currentUser = results[0];
+        const oldProfilePicKey = currentUser.profilepic_key;
+        const oldHeaderPicKey = currentUser.profile_header_key;
+
+        const updates = {
+            first_name: firstName,
+            last_name: lastName,
+            username,
+            email
+        };
+
+        // Function to upload image to S3
+        const uploadToS3 = (file, folder) => {
+            return s3.upload({
+                Bucket: 'cloudhive-userdata',
+                Key: `${folder}/${crypto.randomBytes(12).toString('hex')}.${file.originalname.split('.').pop()}`,
+                Body: file.buffer,
+                ContentType: file.mimetype
+            }).promise();
+        };
+
+        // Function to delete image from S3
+        const deleteFromS3 = (key, folder) => {
+            return s3.deleteObject({
+                Bucket: 'cloudhive-userdata',
+                Key: `${folder}/${key}`
+            }).promise();
+        };
+
+        const s3Operations = [];
+
+        if (profilePic) {
+            // Upload new profile picture and delete old one if exists
+            s3Operations.push(uploadToS3(profilePic, 'profile_pic').then(data => {
+                updates.profilepic_key = data.Key;
+                updates.profile_pic_url = data.Location; // Save the URL
+                console.log('Profile picture uploaded to S3 with URL:', data.Location);
+
+                if (oldProfilePicKey) {
+                    return deleteFromS3(oldProfilePicKey, 'profile_pic').then(() => {
+                        console.log('Old profile picture deleted from S3');
+                    });
+                }
+            }));
+        } else {
+            // If no new profile picture, retain the old key and URL
+            updates.profilepic_key = oldProfilePicKey;
+            updates.profile_pic_url = `https://cloudhive-userdata.s3.amazonaws.com/profile_pic/${oldProfilePicKey}`;
+        }
+
+        if (headerPic) {
+            // Upload new header picture and delete old one if exists
+            s3Operations.push(uploadToS3(headerPic, 'header_pic').then(data => {
+                updates.profile_header_key = data.Key;
+                updates.profile_header = data.Location; // Save the URL
+                console.log('Header picture uploaded to S3 with URL:', data.Location);
+
+                if (oldHeaderPicKey) {
+                    return deleteFromS3(oldHeaderPicKey, 'header_pic').then(() => {
+                        console.log('Old header picture deleted from S3');
+                    });
+                }
+            }));
+        } else {
+            // If no new header picture, retain the old key and URL
+            updates.profile_header_key = oldHeaderPicKey;
+            updates.profile_header = `https://cloudhive-userdata.s3.amazonaws.com/header_pic/${oldHeaderPicKey}`;
+        }
+
+        // Execute S3 operations and then update the database
+        Promise.all(s3Operations).then(() => {
+            // Update user profile
+            db.query('UPDATE users SET ? WHERE user_id = ?', [updates, userId], (err, results) => {
+                if (err) {
+                    console.error('Error updating user profile:', err);
+                    return res.status(500).json({ error: 'Failed to update profile' });
+                }
+
+                res.status(200).json({ message: 'Profile updated successfully' });
             });
+        }).catch(err => {
+            console.error('Error during S3 operations:', err);
+            res.status(500).json({ error: 'Failed to process image uploads' });
         });
     });
+});
 
 app.use((req, res) => {
     res.redirect('/');
