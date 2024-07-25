@@ -1184,7 +1184,7 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
     }
 });
 
-app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic', maxCount: 1 }, { name: 'headerPic', maxCount: 1 }]), async (req, res) => {
+app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic', maxCount: 1 }, { name: 'headerPic', maxCount: 1 }]), (req, res) => {
     console.log('Request user:', req.user); // Log req.user to check its content
 
     if (!req.user || !req.user.userId) {
@@ -1200,9 +1200,13 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
     console.log('Received profile picture:', profilePic);
     console.log('Received header picture:', headerPic);
 
-    try {
-        // Fetch the current user data
-        const [results] = await db.promise().query('SELECT profile_pic_key, profile_header_key FROM users WHERE user_id = ?', [userId]);
+    // Fetch the current user data
+    db.query('SELECT profile_pic_key, profile_header_key FROM users WHERE user_id = ?', [userId], (err, results) => {
+        if (err) {
+            console.error('Error fetching user data:', err);
+            return res.status(500).json({ error: 'Failed to fetch user data' });
+        }
+
         const currentUser = results[0];
         const oldProfilePicKey = currentUser.profile_pic_key;
         const oldHeaderPicKey = currentUser.profile_header_key;
@@ -1214,24 +1218,27 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
             email,
         };
 
+        let updateQueries = [];
+        let s3Uploads = [];
+
         if (profilePic) {
             const profilePicKey = crypto.randomBytes(12).toString('hex') + '.' + profilePic.originalname.split('.').pop();
             updates.profile_pic_key = profilePicKey;
 
-            await s3.putObject({
+            s3Uploads.push(s3.putObject({
                 Bucket: 'cloudhive-userdata',
                 Key: `profile_pic/${profilePicKey}`,
                 Body: profilePic.buffer,
                 ContentType: profilePic.mimetype
-            }).promise();
+            }).promise());
 
             console.log('Profile picture uploaded to S3 with key:', profilePicKey);
 
             if (oldProfilePicKey) {
-                await s3.deleteObject({
+                s3Uploads.push(s3.deleteObject({
                     Bucket: 'cloudhive-userdata',
                     Key: `profile_pic/${oldProfilePicKey}`
-                }).promise();
+                }).promise());
 
                 console.log('Old profile picture deleted from S3 with key:', oldProfilePicKey);
             }
@@ -1241,32 +1248,41 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
             const headerPicKey = crypto.randomBytes(12).toString('hex') + '.' + headerPic.originalname.split('.').pop();
             updates.profile_header_key = headerPicKey;
 
-            await s3.putObject({
+            s3Uploads.push(s3.putObject({
                 Bucket: 'cloudhive-userdata',
                 Key: `header_pic/${headerPicKey}`,
                 Body: headerPic.buffer,
                 ContentType: headerPic.mimetype
-            }).promise();
+            }).promise());
 
             console.log('Header picture uploaded to S3 with key:', headerPicKey);
 
             if (oldHeaderPicKey) {
-                await s3.deleteObject({
+                s3Uploads.push(s3.deleteObject({
                     Bucket: 'cloudhive-userdata',
                     Key: `header_pic/${oldHeaderPicKey}`
-                }).promise();
+                }).promise());
 
                 console.log('Old header picture deleted from S3 with key:', oldHeaderPicKey);
             }
         }
 
-        await db.promise().query('UPDATE users SET ? WHERE user_id = ?', [updates, userId]);
+        // Execute S3 uploads
+        Promise.all(s3Uploads).then(() => {
+            // Update user profile
+            db.query('UPDATE users SET ? WHERE user_id = ?', [updates, userId], (err, results) => {
+                if (err) {
+                    console.error('Error updating user profile:', err);
+                    return res.status(500).json({ error: 'Failed to update profile' });
+                }
 
-        res.status(200).json({ message: 'Profile updated successfully' });
-    } catch (error) {
-        console.error('Error processing update:', error);
-        res.status(500).json({ error: 'Failed to process update' });
-    }
+                res.status(200).json({ message: 'Profile updated successfully' });
+            });
+        }).catch(err => {
+            console.error('Error during S3 operations:', err);
+            res.status(500).json({ error: 'Failed to process image uploads' });
+        });
+    });
 });
 
 app.use((req, res) => {
