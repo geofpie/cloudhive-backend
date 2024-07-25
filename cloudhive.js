@@ -450,7 +450,7 @@ app.get('/:username', verifyToken, (req, res) => {
                         if (userInfo.profilepic_key) {
                             const profilePicParams = {
                                 Bucket: 'cloudhive-userdata',
-                                Key: `profile_pic/${userInfo.profilepic_key}`,
+                                Key: `${userInfo.profilepic_key}`,
                                 Expires: 3600 // 1 hour expiration (in seconds)
                             };
                             s3Operations.push(
@@ -473,7 +473,7 @@ app.get('/:username', verifyToken, (req, res) => {
                         if (userInfo.profile_header_key) {
                             const headerPicParams = {
                                 Bucket: 'cloudhive-userdata',
-                                Key: `header_pic/${userInfo.profile_header_key}`,
+                                Key: `${userInfo.profile_header_key}`,
                                 Expires: 3600 // 1 hour expiration (in seconds)
                             };
                             s3Operations.push(
@@ -1287,7 +1287,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
         } else {
             // If no new profile picture, retain the old key and URL
             updates.profilepic_key = oldProfilePicKey;
-            updates.profile_pic = `https://cloudhive-userdata.s3.amazonaws.com/profile_pic/${oldProfilePicKey}`;
+            updates.profile_pic = `https://cloudhive-userdata.s3.amazonaws.com/{oldProfilePicKey}`;
         }
 
         if (headerPic) {
