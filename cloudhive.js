@@ -1257,7 +1257,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
             // Upload new header picture and delete old one if exists
             s3Operations.push(uploadToS3(headerPic, 'header_pic').then(data => {
                 updates.profile_header_key = data.Key;
-                updates.profile_header_url = data.Location; // Save the URL
+                updates.profile_header = data.Location; // Save the URL
                 console.log('Header picture uploaded to S3 with URL:', data.Location);
 
                 if (oldHeaderPicKey) {
