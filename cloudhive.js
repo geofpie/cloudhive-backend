@@ -1328,7 +1328,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
 });
 
 // Endpoint to handle search queries
-app.get('/search', verifyToken, (req, res) => {
+app.get('/api/search', verifyToken, (req, res) => {
     const query = req.query.q; // Get the search query from the query parameter
 
     if (!query) {
