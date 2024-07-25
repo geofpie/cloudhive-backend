@@ -444,29 +444,62 @@ app.get('/:username', verifyToken, (req, res) => {
                         const postCount = data.Count;
                         userInfo.postsCount = postCount;
 
-                        // Optionally, fetch the profile picture URL if it exists
+                        // Presign the profile picture URL if it exists
+                        const s3Operations = [];
+
                         if (userInfo.profilepic_key) {
-                            const params = {
+                            const profilePicParams = {
                                 Bucket: 'cloudhive-userdata',
-                                Key: userInfo.profilepic_key,
+                                Key: `profile_pic/${userInfo.profilepic_key}`,
                                 Expires: 3600 // 1 hour expiration (in seconds)
                             };
-                            s3.getSignedUrl('getObject', params, (err, url) => {
-                                if (err) {
-                                    console.error('Error generating presigned URL:', err);
-                                    return res.status(500).send('Internal Server Error');
-                                }
+                            s3Operations.push(
+                                new Promise((resolve, reject) => {
+                                    s3.getSignedUrl('getObject', profilePicParams, (err, url) => {
+                                        if (err) {
+                                            console.error('Error generating presigned URL for profile picture:', err);
+                                            reject(err);
+                                        } else {
+                                            userInfo.profile_picture_url = url;
+                                            console.log('Profile picture presigned URL:', url);
+                                            resolve();
+                                        }
+                                    });
+                                })
+                            );
+                        }
 
-                                userInfo.profile_picture_url = url;
+                        // Presign the header picture URL if it exists
+                        if (userInfo.profile_header_key) {
+                            const headerPicParams = {
+                                Bucket: 'cloudhive-userdata',
+                                Key: `header_pic/${userInfo.profile_header_key}`,
+                                Expires: 3600 // 1 hour expiration (in seconds)
+                            };
+                            s3Operations.push(
+                                new Promise((resolve, reject) => {
+                                    s3.getSignedUrl('getObject', headerPicParams, (err, url) => {
+                                        if (err) {
+                                            console.error('Error generating presigned URL for header picture:', err);
+                                            reject(err);
+                                        } else {
+                                            userInfo.profile_header_url = url;
+                                            console.log('Header picture presigned URL:', url);
+                                            resolve();
+                                        }
+                                    });
+                                })
+                            );
+                        }
 
-                                console.log(`Rendering profile page for ${username}`);
-                                res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
-                            });
-                        } else {
-                            // Render profile.html with user data
+                        // Execute all S3 operations
+                        Promise.all(s3Operations).then(() => {
                             console.log(`Rendering profile page for ${username}`);
                             res.render('profile', { user: userInfo, loggedInUser: req.user, followStatus });
-                        }
+                        }).catch(err => {
+                            console.error('Error during S3 operations:', err);
+                            res.status(500).send('Internal Server Error');
+                        });
                     });
                 });
             });

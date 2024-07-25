@@ -95,7 +95,7 @@
     </div>
     <!-- profile.ejs -->
     <div class="container-fluid">
-        <div class="row profile-fullwidth-header" style="background-color: black;">
+        <div class="row profile-fullwidth-header" style="background-image: url('<%= user.profile_header_url || "../assets/loginbg.jpg" %>'); background-size: cover; background-position: center;">
             <div class="col d-flex">
                 <div class="profile-user-name align">
                     <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="header-profile-pic shadow">
