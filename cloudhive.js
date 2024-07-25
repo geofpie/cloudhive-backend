@@ -1201,7 +1201,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
     console.log('Received header picture:', headerPic);
 
     // Fetch the current user data
-    db.query('SELECT profile_pic_key, profile_header_key FROM users WHERE user_id = ?', [userId], (err, results) => {
+    db.query('SELECT profilepic_key, profile_header_key FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
             console.error('Error fetching user data:', err);
             return res.status(500).json({ error: 'Failed to fetch user data' });
