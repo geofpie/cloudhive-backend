@@ -1380,7 +1380,7 @@ app.get('/api/search', verifyToken, (req, res) => {
 
         Promise.all(s3Promises).then(users => {
             // Render the search results page with users and loggedInUser
-            res.render('search_results', { users, loggedInUser });
+            res.render('results', { users, loggedInUser });
         }).catch(err => {
             console.error('Error during S3 operations:', err);
             res.status(500).send('Internal Server Error');
