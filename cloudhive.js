@@ -1327,13 +1327,14 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
     });
 });
 
-// Endpoint to handle search queries
 app.get('/api/search', verifyToken, (req, res) => {
-    const query = req.query.q; // Get the search query from the query parameter
+    const query = req.query.query; // Access the query parameter
 
     if (!query) {
         return res.status(400).send('No search query provided');
     }
+
+    console.log(`Search query: ${query}`);
 
     // Query to search for users
     const searchQuery = `
@@ -1348,6 +1349,8 @@ app.get('/api/search', verifyToken, (req, res) => {
             console.error('Error fetching search results:', err);
             return res.status(500).send('Internal Server Error');
         }
+
+        console.log('Search results:', results);
 
         // Generate presigned URLs for profile pictures
         const s3Promises = results.map(user => {
@@ -1376,7 +1379,7 @@ app.get('/api/search', verifyToken, (req, res) => {
 
         Promise.all(s3Promises).then(users => {
             // Render the search results page with users
-            res.render('results', { users });
+            res.render('search_results', { users });
         }).catch(err => {
             console.error('Error during S3 operations:', err);
             res.status(500).send('Internal Server Error');
