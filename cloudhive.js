@@ -1242,7 +1242,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
             // Upload new profile picture and delete old one if exists
             s3Operations.push(uploadToS3(profilePic, 'profile_pic').then(data => {
                 updates.profilepic_key = data.Key;
-                updates.profile_pic_url = data.Location; // Save the URL
+                updates.profile_pic = data.Location; // Save the URL
                 console.log('Profile picture uploaded to S3 with URL:', data.Location);
 
                 if (oldProfilePicKey) {
@@ -1254,7 +1254,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
         } else {
             // If no new profile picture, retain the old key and URL
             updates.profilepic_key = oldProfilePicKey;
-            updates.profile_pic_url = `https://cloudhive-userdata.s3.amazonaws.com/profile_pic/${oldProfilePicKey}`;
+            updates.profile_pic = `https://cloudhive-userdata.s3.amazonaws.com/profile_pic/${oldProfilePicKey}`;
         }
 
         if (headerPic) {
