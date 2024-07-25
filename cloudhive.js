@@ -1201,7 +1201,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
     console.log('Received header picture:', headerPic);
 
     // Fetch the current user data
-    db.query('SELECT profilepic_key, profile_header_key FROM users WHERE user_id = ?', [userId], (err, results) => {
+    db.query('SELECT profile_pic_key, profile_header_key FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
             console.error('Error fetching user data:', err);
             return res.status(500).json({ error: 'Failed to fetch user data' });
@@ -1215,56 +1215,50 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
             first_name: firstName,
             last_name: lastName,
             username,
-            email,
+            email
         };
 
         let updateQueries = [];
         let s3Uploads = [];
 
-        if (profilePic) {
-            const profilePicKey = crypto.randomBytes(12).toString('hex') + '.' + profilePic.originalname.split('.').pop();
-            updates.profile_pic_key = profilePicKey;
-
-            s3Uploads.push(s3.putObject({
+        // Function to upload image to S3
+        const uploadToS3 = (file, folder) => {
+            return s3.upload({
                 Bucket: 'cloudhive-userdata',
-                Key: `profile_pic/${profilePicKey}`,
-                Body: profilePic.buffer,
-                ContentType: profilePic.mimetype
-            }).promise());
+                Key: `${folder}/${crypto.randomBytes(12).toString('hex')}.${file.originalname.split('.').pop()}`,
+                Body: file.buffer,
+                ContentType: file.mimetype
+            }).promise();
+        };
 
-            console.log('Profile picture uploaded to S3 with key:', profilePicKey);
+        if (profilePic) {
+            s3Uploads.push(uploadToS3(profilePic, 'profile_pic').then(data => {
+                updates.profile_pic_key = data.Key;
+                updates.profile_pic_url = data.Location; // Save the URL
+                console.log('Profile picture uploaded to S3 with URL:', data.Location);
 
-            if (oldProfilePicKey) {
-                s3Uploads.push(s3.deleteObject({
-                    Bucket: 'cloudhive-userdata',
-                    Key: `profile_pic/${oldProfilePicKey}`
-                }).promise());
-
-                console.log('Old profile picture deleted from S3 with key:', oldProfilePicKey);
-            }
+                if (oldProfilePicKey) {
+                    return s3.deleteObject({
+                        Bucket: 'cloudhive-userdata',
+                        Key: `profile_pic/${oldProfilePicKey}`
+                    }).promise().then(() => console.log('Old profile picture deleted from S3'));
+                }
+            }));
         }
 
         if (headerPic) {
-            const headerPicKey = crypto.randomBytes(12).toString('hex') + '.' + headerPic.originalname.split('.').pop();
-            updates.profile_header_key = headerPicKey;
+            s3Uploads.push(uploadToS3(headerPic, 'header_pic').then(data => {
+                updates.profile_header_key = data.Key;
+                updates.profile_header_url = data.Location; // Save the URL
+                console.log('Header picture uploaded to S3 with URL:', data.Location);
 
-            s3Uploads.push(s3.putObject({
-                Bucket: 'cloudhive-userdata',
-                Key: `header_pic/${headerPicKey}`,
-                Body: headerPic.buffer,
-                ContentType: headerPic.mimetype
-            }).promise());
-
-            console.log('Header picture uploaded to S3 with key:', headerPicKey);
-
-            if (oldHeaderPicKey) {
-                s3Uploads.push(s3.deleteObject({
-                    Bucket: 'cloudhive-userdata',
-                    Key: `header_pic/${oldHeaderPicKey}`
-                }).promise());
-
-                console.log('Old header picture deleted from S3 with key:', oldHeaderPicKey);
-            }
+                if (oldHeaderPicKey) {
+                    return s3.deleteObject({
+                        Bucket: 'cloudhive-userdata',
+                        Key: `header_pic/${oldHeaderPicKey}`
+                    }).promise().then(() => console.log('Old header picture deleted from S3'));
+                }
+            }));
         }
 
         // Execute S3 uploads
