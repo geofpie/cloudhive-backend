@@ -93,8 +93,8 @@
     <div class="container">
         <div class="row">
             <% users.forEach(user => { %>
-                <div class="col-md-3 shadow result-card">
-                    <div class="card">
+                <div class="col-md-3">
+                    <div class="card shadow result-card">
                         <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" class="card-img-top" alt="Profile Picture">
                         <div class="card-body">
                             <h5 class="card-title"><%= user.first_name %> <%= user.last_name %></h5>
