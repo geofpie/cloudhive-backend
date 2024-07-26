@@ -422,11 +422,12 @@ app.get('/api/friends', verifyToken, async (req, res) => {
         // Fetch friends list from the database
         const friends = await db.query(`
             SELECT u.user_id, u.username, u.first_name, u.last_name, u.profile_pic AS profile_picture_url,
-                   (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) AS following,
-                   (SELECT COUNT(*) FROM follows WHERE followed_id = u.user_id) AS followers
+                   (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) AS following_count,
+                   (SELECT COUNT(*) FROM follows WHERE followed_id = u.user_id) AS followers_count
             FROM users u
-            JOIN friends f ON (f.user_id = ? AND f.friend_id = u.user_id)
-        `, [userId]);
+            JOIN follows f ON (f.follower_id = u.user_id OR f.followed_id = u.user_id)
+            WHERE f.follower_id = ? OR f.followed_id = ?
+        `, [userId, userId]);
 
         res.json({ friends });
     } catch (error) {
