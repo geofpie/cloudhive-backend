@@ -30,7 +30,7 @@
 <body>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light sticky-top hive-navbar">
-        <a class="navbar-brand" href="#">
+        <a class="navbar-brand" href="/hive">
             <img src="../assets/logo-dark.svg" width="46" height="46" alt="cloudhive">
         </a>
         <button class="navbar-toggler navbar-hamburger" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,17 +89,17 @@
             </div>
         </div>
     </div>
-    <h1>Search Results</h1>
     <div class="container">
+        <h2>Search Results</h2>
         <div class="row">
             <% users.forEach(user => { %>
                 <div class="col-md-3">
                     <div class="card shadow result-card">
                         <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" class="card-img-top" alt="Profile Picture">
                         <div class="card-body">
-                            <h5 class="card-title"><%= user.first_name %> <%= user.last_name %></h5>
-                            <p class="card-text">@<%= user.username %></p>
-                            <a href="/<%= user.username %>" class="btn btn-primary">View Profile</a>
+                            <a href="/<%= user.username %>"><h5 class="card-title"><%= user.first_name %> <%= user.last_name %></h5>
+                            <p class="card-text">@<%= user.username %></p></a>
+                            <a href="/<%= user.username %>" class="btn hive-btn">View Profile</a>
                         </div>
                     </div>
                 </div>
