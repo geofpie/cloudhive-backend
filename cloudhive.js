@@ -1377,7 +1377,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
         } else {
             // If no new profile picture, retain the old key and URL
             updates.profilepic_key = oldProfilePicKey;
-            updates.profile_pic = `https://cloudhive-userdata.s3.amazonaws.com/{oldProfilePicKey}`;
+            updates.profile_pic = oldProfilePicKey ? `https://cloudhive-userdata.s3.amazonaws.com/profile_pic/${oldProfilePicKey}` : null;
         }
 
         if (headerPic) {
@@ -1396,7 +1396,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
         } else {
             // If no new header picture, retain the old key and URL
             updates.profile_header_key = oldHeaderPicKey;
-            updates.profile_header = `https://cloudhive-userdata.s3.amazonaws.com/header_pic/${oldHeaderPicKey}`;
+            updates.profile_header = oldHeaderPicKey ? `https://cloudhive-userdata.s3.amazonaws.com/header_pic/${oldHeaderPicKey}` : null;
         }
 
         // Execute S3 operations and then update the database
