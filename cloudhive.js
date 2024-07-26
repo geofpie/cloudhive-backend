@@ -147,67 +147,6 @@ const verifyToken = (req, res, next) => {
     });
 };
 
-app.get('/search', verifyToken, (req, res) => {
-    const query = req.query.query;
-
-    if (!query) {
-        return res.status(400).send('No search query provided');
-    }
-
-    // Retrieve the logged-in user information from the session or token
-    const loggedInUser = req.user; // Adjust according to your authentication setup
-
-    console.log(`Search query: ${query}`);
-
-    const searchQuery = `
-        SELECT username, first_name, last_name, profilepic_key
-        FROM users
-        WHERE username LIKE ? OR first_name LIKE ? OR last_name LIKE ?
-    `;
-    const searchParams = [`%${query}%`, `%${query}%`, `%${query}%`];
-
-    db.query(searchQuery, searchParams, (err, results) => {
-        if (err) {
-            console.error('Error fetching search results:', err);
-            return res.status(500).send('Internal Server Error');
-        }
-
-        console.log('Search results:', results);
-
-        const s3Promises = results.map(user => {
-            if (user.profilepic_key) {
-                const params = {
-                    Bucket: 'cloudhive-userdata',
-                    Key: user.profilepic_key,
-                    Expires: 3600 // 1 hour expiration (in seconds)
-                };
-                return new Promise((resolve, reject) => {
-                    s3.getSignedUrl('getObject', params, (err, url) => {
-                        if (err) {
-                            console.error('Error generating presigned URL:', err);
-                            reject(err);
-                        } else {
-                            user.profile_picture_url = url;
-                            resolve(user);
-                        }
-                    });
-                });
-            } else {
-                user.profile_picture_url = '../assets/default-profile.jpg'; // Fallback image
-                return Promise.resolve(user);
-            }
-        });
-
-        Promise.all(s3Promises).then(users => {
-            // Render the search results page with users and loggedInUser
-            res.render('results', { users, loggedInUser });
-        }).catch(err => {
-            console.error('Error during S3 operations:', err);
-            res.status(500).send('Internal Server Error');
-        });
-    });
-});
-
 // New login and fetch user info endpoint
 app.post('/api/login_redirect', (req, res) => {
     const { identifier, password } = req.body; // Use 'identifier' to accept either username or email
@@ -1384,6 +1323,67 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
         }).catch(err => {
             console.error('Error during S3 operations:', err);
             res.status(500).json({ error: 'Failed to process image uploads' });
+        });
+    });
+});
+
+app.get('/search', verifyToken, (req, res) => {
+    const query = req.query.query;
+
+    if (!query) {
+        return res.status(400).send('No search query provided');
+    }
+
+    // Retrieve the logged-in user information from the session or token
+    const loggedInUser = req.user; // Adjust according to your authentication setup
+
+    console.log(`Search query: ${query}`);
+
+    const searchQuery = `
+        SELECT username, first_name, last_name, profilepic_key
+        FROM users
+        WHERE username LIKE ? OR first_name LIKE ? OR last_name LIKE ?
+    `;
+    const searchParams = [`%${query}%`, `%${query}%`, `%${query}%`];
+
+    db.query(searchQuery, searchParams, (err, results) => {
+        if (err) {
+            console.error('Error fetching search results:', err);
+            return res.status(500).send('Internal Server Error');
+        }
+
+        console.log('Search results:', results);
+
+        const s3Promises = results.map(user => {
+            if (user.profilepic_key) {
+                const params = {
+                    Bucket: 'cloudhive-userdata',
+                    Key: user.profilepic_key,
+                    Expires: 3600 // 1 hour expiration (in seconds)
+                };
+                return new Promise((resolve, reject) => {
+                    s3.getSignedUrl('getObject', params, (err, url) => {
+                        if (err) {
+                            console.error('Error generating presigned URL:', err);
+                            reject(err);
+                        } else {
+                            user.profile_picture_url = url;
+                            resolve(user);
+                        }
+                    });
+                });
+            } else {
+                user.profile_picture_url = '../assets/default-profile.jpg'; // Fallback image
+                return Promise.resolve(user);
+            }
+        });
+
+        Promise.all(s3Promises).then(users => {
+            // Render the search results page with users and loggedInUser
+            res.render('results', { users, loggedInUser });
+        }).catch(err => {
+            console.error('Error during S3 operations:', err);
+            res.status(500).send('Internal Server Error');
         });
     });
 });
