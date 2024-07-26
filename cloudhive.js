@@ -434,6 +434,14 @@ app.get('/api/friends', verifyToken, async (req, res) => {
     }
 });
 
+// Route to render the friends page
+app.get('/friends', verifyToken, (req, res) => {
+    res.render('friends', {
+        user: req.user, // Pass user data to the template
+        friends: [] // Initially pass an empty array; this will be populated via AJAX
+    });
+});
+
 app.get('/:username', verifyToken, (req, res) => {
     const username = req.params.username;
     console.log(`Fetching profile for username: ${username}`);
@@ -1404,14 +1412,6 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
             console.error('Error during S3 operations:', err);
             res.status(500).json({ error: 'Failed to process image uploads' });
         });
-    });
-});
-
-// Route to render the friends page
-app.get('/friends', verifyToken, (req, res) => {
-    res.render('friends', {
-        user: req.user, // Pass user data to the template
-        friends: [] // Initially pass an empty array; this will be populated via AJAX
     });
 });
 
