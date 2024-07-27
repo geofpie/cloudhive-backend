@@ -26,6 +26,14 @@
     <!-- day.js for relative time calculation -->
     <script src="https://cdn.jsdelivr.net/npm/dayjs/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs/plugin/relativeTime.js"></script>
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#9f00a7">
+    <meta name="theme-color" content="#ffffff">
 </head>
 <body>
      <!-- Navbar -->
@@ -133,11 +141,11 @@
             <div class="col"></div>
             <div class="col-md-5 hive-post-action-bar shadow-sm">
                 <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="navbar-profile-pic">
-                <button class="share-post-button" id="share-post">Say or share something</button>
-                <button class="write-post-btn" id="pic-post">
+                <button class="share-post-button shadow" id="share-post">Say or share something</button>
+                <button class="write-post-btn write" id="pic-post">
                     <i class="fa fa-pen postbtn-icon"></i>Write Post
                 </button>
-                <button class="write-post-btn" id="write-post">
+                <button class="write-post-btn pic" id="write-post">
                     <i class="fa fa-camera postbtn-icon"></i>Post Picture
                 </button>
             </div>
