@@ -840,7 +840,7 @@ app.get('/api/approve-follow/:username', (req, res) => {
 
 app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
     const usernameToCancel = req.params.username;
-    const loggedInUser = req.user.username; // Assuming `req.user` contains the logged-in user's info
+    const loggedInUser = req.user.username;
 
     try {
         const followRequest = await Follow.findOneAndDelete({ 
