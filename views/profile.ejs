@@ -155,9 +155,9 @@
         <div class="hive-feed-area" id="hive-feed-area">
             <!-- Posts go here -->
         </div>
-        <div class="row d-flex">
+        <div class="d-flex">
             <% if (followStatus === 'following' || loggedInUser.username === user.username) { %>
-                <div class="col mx-auto">
+                <div class="newsfeed-load-more-cont mx-auto">
                     <button id="load-more" class="load-more-btn">Load More</button>
                 </div>
             <% } else if (followStatus !== 'following' || followStatus === 'requested' || followStatus === '') { %>
