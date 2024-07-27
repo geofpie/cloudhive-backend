@@ -171,13 +171,14 @@ app.post('/api/login_redirect', (req, res) => {
             }
 
             // Generate JWT token
-            const token = jwt.sign({ userId: user.user_id, username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign({ userId: user.user_id, username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
+            console.log('email used: ', user.email);
 
             // Log token generation
             console.log('JWT Token Generated:', token);
 
             // Send token in a cookie
-            res.cookie('token', token, { httpOnly: true, secure: false }); // Change to secure: true in production
+            res.cookie('token', token, { httpOnly: true, secure: true });
 
             // Fetch user information
             db.query('SELECT username, email, first_name, last_name, country FROM users WHERE user_id = ?', [user.user_id], (err, results) => {
