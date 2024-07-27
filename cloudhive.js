@@ -838,31 +838,25 @@ app.get('/api/approve-follow/:username', (req, res) => {
     });
 });
 
-app.post('/api/cancel-follow/:username', verifyToken, (req, res) => {
+app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
     const usernameToCancel = req.params.username;
-    const userId = req.user.userId; // Extract user ID from the decoded JWT
+    const loggedInUser = req.user.username; // Assuming `req.user` contains the logged-in user's info
 
-    // Check if the user is following the target user
-    db.query('SELECT * FROM follows WHERE follower_id = ? AND followed_id = ?', [userId, usernameToCancel], (err, results) => {
-        if (err) {
-            console.error('Error checking follow status:', err);
-            return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (results.length === 0) {
-            return res.status(404).json({ error: 'Follow request not found' });
-        }
-
-        // Remove the follow request from the database
-        db.query('DELETE FROM follows WHERE follower_id = ? AND followed_id = ?', [userId, usernameToCancel], (err) => {
-            if (err) {
-                console.error('Error canceling follow request:', err);
-                return res.status(500).json({ error: 'Database error' });
-            }
-
-            res.status(200).json({ message: 'Follow request canceled successfully' });
+    try {
+        const followRequest = await Follow.findOneAndDelete({ 
+            follower: loggedInUser, 
+            following: usernameToCancel 
         });
-    });
+
+        if (followRequest) {
+            res.send('Follow request canceled successfully');
+        } else {
+            res.status(404).send('Follow request not found');
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Error canceling follow request');
+    }
 });
 
 // Endpoint to fetch follow requests for the logged-in user
