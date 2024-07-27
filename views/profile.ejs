@@ -119,13 +119,13 @@
                         <p class="profile-stat profile-user-following-count" id="profile-user-following-count"><strong><%= user.followingCount || 0 %></strong> following</p>
                         <% if (loggedInUser.username === user.username) { %>
                             <!-- Show edit profile button -->
-                            <button class="profile-stat hive-user-action" id="edit-profile"><i class="fa fa-edit"></i>Edit Profile</button>
+                            <button class="profile-stat hive-user-action" id="edit-profile"><i class="fa fa-edit uab"></i>Edit Profile</button>
                         <% } else { %>
                             <!-- Show follow button -->
                             <% if (followStatus === 'requested') { %>
-                                <button class="profile-stat hive-user-action" disabled><i class="fa fa-clock"></i>Requested</button>
+                                <button class="profile-stat hive-user-action" disabled><i class="fa fa-clock uab"></i>Requested</button>
                             <% } else if (followStatus === 'following') { %>
-                                <button class="profile-stat hive-user-action" disabled><i class="fa fa-user-plus"></i>Following</button>
+                                <button class="profile-stat hive-user-action" disabled><i class="fa fa-user-plus uab"></i>Following</button>
                             <% } else { %>
                                 <button class="profile-stat hive-user-action" onclick="sendFollowRequest('<%= user.username %>')"><i class="fa fa-user-plus"></i>Follow</button>
                             <% } %>
@@ -139,7 +139,7 @@
         <% if (loggedInUser.username === user.username) { %>
         <div class="row profile-user-post align-items-center">
             <div class="col"></div>
-            <div class="col-md-5 hive-post-action-bar shadow-sm">
+            <div class="col-md-5 hive-post-action-bar">
                 <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="navbar-profile-pic">
                 <button class="share-post-button shadow" id="share-post">Say or share something</button>
                 <button class="write-post-btn write" id="pic-post">
