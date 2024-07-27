@@ -71,15 +71,15 @@
                 </li>
                 <% if (loggedInUser.username === user.username) { %>
                     <li class="nav-item hive-nav-btn active">
-                        <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#">{user}</a>
+                        <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#">{user}
                     </li> 
                 <% } else { %>
                     <li class="nav-item hive-nav-btn">
-                        <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#">{user}</a>
+                        <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#">{user}
                     </li>
                  <% } %>
                  <li class="nav-item hive-nav-btn">
-                    <img src="../assets/default-profile.jpg" alt="Profile" class="navbar-profile-pic">
+                    <img src="../assets/default-profile.jpg" alt="Profile" class="navbar-profile-pic"></a>
                 </li>
             </ul>
         </div>
@@ -134,7 +134,7 @@
 
         <% if (loggedInUser.username === user.username) { %>
         <div class="profile-user-post d-flex">
-            <div class="col-md-5 hive-post-action-bar mx-auto">
+            <div class="col-md-4 hive-post-action-bar mx-auto">
                 <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="navbar-profile-pic">
                 <button class="share-post-button" id="share-post">Say or share something</button>
                 <button class="write-post-btn write" id="pic-post">
