@@ -1060,10 +1060,9 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
 
 app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
     const { username } = req.params;
-    const { lastTimestamp } = req.query; // Use lastTimestamp from frontend
+    const { lastTimestamp } = req.query; // Ensure consistent parameter naming
     const loggedInUserId = req.user.userId;
 
-    // Log the username and lastTimestamp received from the frontend
     console.log('Received username:', username);
     console.log('Received lastTimestamp:', lastTimestamp);
     console.log('Logged-in user ID:', loggedInUserId);
@@ -1082,12 +1081,8 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
 
         const userId = userResults[0].user_id.toString();
 
-        // Log the fetched user ID
         console.log('Fetched user ID:', userId);
-        console.log('Type of fetched user ID:', typeof userId);
-        console.log('Type of logged-in user ID:', typeof loggedInUserId);
 
-        // Check if the logged-in user is following the requested user or it's their own profile
         const checkFollowQuery = `
             SELECT status
             FROM follows
@@ -1102,9 +1097,6 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
 
             const isFollowing = followResults.some(row => row.status === 'following');
             const isOwnProfile = loggedInUserId.toString() === userId.toString();
-            console.log('loggedinuid: ', loggedInUserId, 'userid: ', userId);
-
-            // Log the follow status and ownership status
             console.log('Is following:', isFollowing);
             console.log('Is own profile:', isOwnProfile);
 
@@ -1113,7 +1105,6 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
             }
 
             let allPosts = [];
-
             const params = {
                 TableName: 'cloudhive-postdb',
                 IndexName: 'userId-postTimestamp-index',
@@ -1122,7 +1113,7 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
                     ':userId': userId
                 },
                 Limit: 8,
-                ScanIndexForward: false // Descending order
+                ScanIndexForward: false
             };
 
             if (lastTimestamp) {
@@ -1132,8 +1123,6 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
 
             try {
                 const data = await dynamoDB.query(params).promise();
-
-                // Log the result of the DynamoDB query
                 console.log('Fetched posts data from DynamoDB:', data);
 
                 const getUserProfileDataQuery = 'SELECT profilepic_key, first_name FROM users WHERE user_id = ?';
@@ -1150,7 +1139,6 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
                     });
                 }));
 
-                // Check if the logged-in user has liked each post
                 const likedPostsPromises = data.Items.map(post => {
                     const params = {
                         TableName: 'cloudhive-likes',
@@ -1185,8 +1173,6 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
                         post.imageUrl = await s3.getSignedUrlPromise('getObject', postImageParams);
                     }
                     post.firstName = first_name;
-
-                    // Attach `isLiked` status to the post
                     const likedPost = likedPosts.find(likedPost => likedPost.postId === post.postId);
                     post.isLiked = likedPost ? likedPost.isLiked : false;
                 }
@@ -1197,11 +1183,8 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
                 return res.status(500).json({ message: 'Failed to fetch posts' });
             }
 
-            // Sort and paginate posts
             allPosts.sort((a, b) => new Date(b.postTimestamp).getTime() - new Date(a.postTimestamp).getTime());
             const paginatedPosts = allPosts.slice(0, 8);
-
-            // Log the paginated posts and lastTimestamp for debugging
             console.log('Paginated posts:', paginatedPosts);
             const lastTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postTimestamp : null;
             console.log('LastTimestamp to be sent to frontend:', lastTimestampValue);
