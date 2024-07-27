@@ -119,7 +119,7 @@
                         <% } else { %>
                             <!-- Show follow button -->
                             <% if (followStatus === 'requested') { %>
-                                <button class="profile-stat hive-user-action" data-status="requested" id="cancel-follow-button" onclick="cancelFollowRequest('<%= user.username %>')" disabled>
+                                <button class="profile-stat hive-user-action" data-status="requested" id="cancel-follow-button" onclick="cancelFollowRequest('<%= user.username %>')">
                                     <i class="fa fa-clock uab"></i><span class="button-text">Requested</span>
                                 </button>
                             <% } else if (followStatus === 'following') { %>
