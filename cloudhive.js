@@ -1457,6 +1457,40 @@ app.post('/api/change_password', verifyToken, (req, res) => {
     });
 });
 
+// Endpoint to change the email
+app.post('/api/change_email', verifyToken, (req, res) => {
+    const { newEmail } = req.body;
+    const userId = req.user.userId; // Extract userId from the verified token
+
+    // Validate the new email
+    if (!newEmail || !newEmail.includes('@')) {
+        return res.status(400).json({ error: 'Invalid email address' });
+    }
+
+    // Check if the new email is already in use
+    db.query('SELECT * FROM users WHERE email = ?', [newEmail], (err, results) => {
+        if (err) {
+            console.error('Error checking email:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (results.length > 0) {
+            return res.status(400).json({ error: 'Email address is already in use' });
+        }
+
+        // Update the email in the database
+        db.query('UPDATE users SET email = ? WHERE user_id = ?', [newEmail, userId], (err) => {
+            if (err) {
+                console.error('Error updating email:', err);
+                return res.status(500).json({ error: 'Failed to update email' });
+            }
+
+            res.status(200).json({ message: 'Email updated successfully' });
+        });
+    });
+});
+
+
 app.use((req, res) => {
     res.redirect('/');
 });
