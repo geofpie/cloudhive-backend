@@ -170,17 +170,7 @@ app.post('/api/login_redirect', (req, res) => {
                 return res.status(401).json({ error: 'Invalid username or email or password' });
             }
 
-            // Generate JWT token
-            const token = jwt.sign({ userId: user.user_id, username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '2h' });
-            console.log('email used: ', user.email);
-
-            // Log token generation
-            console.log('JWT Token Generated:', token);
-
-            // Send token in a cookie
-            res.cookie('token', token, { httpOnly: true, secure: true });
-
-            // Fetch user information
+            // Fetch complete user information including email
             db.query('SELECT username, email, first_name, last_name, country FROM users WHERE user_id = ?', [user.user_id], (err, results) => {
                 if (err) {
                     console.error('Error fetching user information:', err);
@@ -193,7 +183,15 @@ app.post('/api/login_redirect', (req, res) => {
 
                 const userInfo = results[0];
 
-                console.log('User information retrieved successfully:', userInfo);
+                // Generate JWT token with correct user information
+                const token = jwt.sign({ userId: user.user_id, username: userInfo.username, email: userInfo.email }, JWT_SECRET, { expiresIn: '2h' });
+                console.log('email used: ', userInfo.email);
+
+                // Log token generation
+                console.log('JWT Token Generated:', token);
+
+                // Send token in a cookie
+                res.cookie('token', token, { httpOnly: true, secure: true });
 
                 // Check if required fields are empty
                 if (!userInfo.first_name || !userInfo.last_name || !userInfo.country) {
