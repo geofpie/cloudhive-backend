@@ -838,6 +838,33 @@ app.get('/api/approve-follow/:username', (req, res) => {
     });
 });
 
+app.post('/api/cancel-follow/:username', verifyToken, (req, res) => {
+    const usernameToCancel = req.params.username;
+    const userId = req.user.userId; // Extract user ID from the decoded JWT
+
+    // Check if the user is following the target user
+    db.query('SELECT * FROM follows WHERE follower_id = ? AND followed_id = ?', [userId, usernameToCancel], (err, results) => {
+        if (err) {
+            console.error('Error checking follow status:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Follow request not found' });
+        }
+
+        // Remove the follow request from the database
+        db.query('DELETE FROM follows WHERE follower_id = ? AND followed_id = ?', [userId, usernameToCancel], (err) => {
+            if (err) {
+                console.error('Error canceling follow request:', err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+
+            res.status(200).json({ message: 'Follow request canceled successfully' });
+        });
+    });
+});
+
 // Endpoint to fetch follow requests for the logged-in user
 app.get('/api/follow-requests', verifyToken, (req, res) => {
     const userId = req.user.userId;
