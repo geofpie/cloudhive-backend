@@ -119,11 +119,11 @@
                         <% } else { %>
                             <!-- Show follow button -->
                             <% if (followStatus === 'requested') { %>
-                                <button class="profile-stat hive-user-action" disabled><i class="fa fa-clock uab"></i>Requested</button>
+                                <button class="profile-stat hive-user-action" id="follow-button" disabled><i class="fa fa-clock uab"></i>Requested</button>
                             <% } else if (followStatus === 'following') { %>
-                                <button class="profile-stat hive-user-action" disabled><i class="fa fa-user-plus uab"></i>Following</button>
+                                <button class="profile-stat hive-user-action" id="follow-button" disabled><i class="fa fa-user-plus uab"></i>Following</button>
                             <% } else { %>
-                                <button class="profile-stat hive-user-action" onclick="sendFollowRequest('<%= user.username %>')"><i class="fa fa-user-plus uab"></i>Follow</button>
+                                <button class="profile-stat hive-user-action" id="follow-button" onclick="sendFollowRequest('<%= user.username %>')"><i class="fa fa-user-plus uab"></i>Follow</button>
                             <% } %>
                         <% } %>
                     </div>
