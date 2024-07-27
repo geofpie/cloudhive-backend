@@ -1400,22 +1400,24 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
     });
 });
 
-// Endpoint to change the password
+// Update password endpoint
 app.post('/api/change_password', verifyToken, (req, res) => {
     const { currentPassword, newPassword, confirmNewPassword } = req.body;
 
+    // Ensure all fields are provided
     if (!currentPassword || !newPassword || !confirmNewPassword) {
         return res.status(400).json({ error: 'All fields are required' });
     }
 
+    // Check if new passwords match
     if (newPassword !== confirmNewPassword) {
         return res.status(400).json({ error: 'New password and confirmation do not match' });
     }
 
-    // User ID should be available from the verified token
-    const userId = req.user.userId; // Replace with actual method to get user ID from the token
+    // Extract userId from the token
+    const userId = req.user.userId;
 
-    // Fetch the user's current hashed password from the database
+    // Query the database for the user's current password hash
     db.query('SELECT password_hash FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
             console.error('Error retrieving user:', err);
@@ -1428,7 +1430,7 @@ app.post('/api/change_password', verifyToken, (req, res) => {
 
         const user = results[0];
 
-        // Compare current password with the stored hash
+        // Compare the provided current password with the stored hash
         bcrypt.compare(currentPassword, user.password_hash, (bcryptErr, bcryptRes) => {
             if (bcryptErr || !bcryptRes) {
                 return res.status(401).json({ error: 'Current password is incorrect' });
@@ -1441,7 +1443,7 @@ app.post('/api/change_password', verifyToken, (req, res) => {
                     return res.status(500).json({ error: 'Failed to hash new password' });
                 }
 
-                // Update the user's password in the database
+                // Update the password in the database
                 db.query('UPDATE users SET password_hash = ? WHERE user_id = ?', [hashedPassword, userId], (updateErr) => {
                     if (updateErr) {
                         console.error('Error updating password:', updateErr);
