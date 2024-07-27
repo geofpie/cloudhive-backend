@@ -29,6 +29,8 @@ const s3 = new AWS.S3({
     signatureVersion: 'v4'
 });
 
+app.set('trust proxy', true);
+
 const upload = multer({ storage: multer.memoryStorage() });
 
 const TABLE_NAME = 'cloudhive-postdb';
@@ -77,7 +79,7 @@ const logIpAddress = (req, res, next) => {
 };
 
 // Register endpoint
-app.post('/api/register', logIpAddress, registerRateLimiter, (req, res) => {
+app.post('/api/register', logIpAddress, registerRateLimiter, async (req, res) => {
     const { username, email, password } = req.body;
 
     db.query('SELECT * FROM users WHERE username = ? OR email = ?', [username, email], (err, results) => {
