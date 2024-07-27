@@ -258,6 +258,12 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const profileHeaderUrl = '<%= user.profile_header_url || "../assets/loginbg.jpg" %>';
+    setTextColorBasedOnBackground(profileHeaderUrl);
+});
+</script>
 </body>
 <footer>
     <div class="container">
