@@ -182,6 +182,7 @@ app.post('/api/login_redirect', (req, res) => {
                 }
 
                 const userInfo = results[0];
+                console.log(userInfo);
 
                 // Generate JWT token with correct user information
                 const token = jwt.sign({ userId: user.user_id, username: userInfo.username, email: userInfo.email }, JWT_SECRET, { expiresIn: '2h' });
