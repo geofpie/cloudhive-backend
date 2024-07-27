@@ -1400,6 +1400,61 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
     });
 });
 
+// Endpoint to change the password
+app.post('/api/change_password', verifyToken, (req, res) => {
+    const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    if (newPassword !== confirmNewPassword) {
+        return res.status(400).json({ error: 'New password and confirmation do not match' });
+    }
+
+    // User ID should be available from the verified token
+    const userId = req.user.userId; // Replace with actual method to get user ID from the token
+
+    // Fetch the user's current hashed password from the database
+    db.query('SELECT password_hash FROM users WHERE user_id = ?', [userId], (err, results) => {
+        if (err) {
+            console.error('Error retrieving user:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const user = results[0];
+
+        // Compare current password with the stored hash
+        bcrypt.compare(currentPassword, user.password_hash, (bcryptErr, bcryptRes) => {
+            if (bcryptErr || !bcryptRes) {
+                return res.status(401).json({ error: 'Current password is incorrect' });
+            }
+
+            // Hash the new password
+            bcrypt.hash(newPassword, 10, (hashErr, hashedPassword) => {
+                if (hashErr) {
+                    console.error('Error hashing new password:', hashErr);
+                    return res.status(500).json({ error: 'Failed to hash new password' });
+                }
+
+                // Update the user's password in the database
+                db.query('UPDATE users SET password_hash = ? WHERE user_id = ?', [hashedPassword, userId], (updateErr) => {
+                    if (updateErr) {
+                        console.error('Error updating password:', updateErr);
+                        return res.status(500).json({ error: 'Failed to update password' });
+                    }
+
+                    res.status(200).json({ message: 'Password changed successfully' });
+                });
+            });
+        });
+    });
+});
+
 app.use((req, res) => {
     res.redirect('/');
 });
