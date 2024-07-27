@@ -69,6 +69,13 @@ const registerRateLimiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.'
 });
 
+// Middleware to log IP address
+const logIpAddress = (req, res, next) => {
+    const ip = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0] : req.connection.remoteAddress;
+    console.log(`IP Address: ${ip} - Requested URL: ${req.originalUrl} - Method: ${req.method}`);
+    next();
+};
+
 // Register endpoint
 app.post('/api/register', logIpAddress, registerRateLimiter, (req, res) => {
     const { username, email, password } = req.body;
@@ -153,13 +160,6 @@ const verifyToken = (req, res, next) => {
 
         next();
     });
-};
-
-// Middleware to log IP address
-const logIpAddress = (req, res, next) => {
-    const ip = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0] : req.connection.remoteAddress;
-    console.log(`IP Address: ${ip} - Requested URL: ${req.originalUrl} - Method: ${req.method}`);
-    next();
 };
 
 // New login and fetch user info endpoint
