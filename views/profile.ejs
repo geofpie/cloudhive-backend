@@ -157,7 +157,9 @@
         </div>
         <div class="row d-flex">
             <% if (followStatus === 'following' || loggedInUser.username === user.username) { %>
-                <button id="load-more">Load More</button>
+                <div class="col">
+                    <button id="load-more" class="load-more-btn">Load More</button>
+                </div>
             <% } else if (followStatus !== 'following' || followStatus === 'requested' || followStatus === '') { %>
                 <div class="col-md-3 user-not-followed shadow mx-auto">
                     <i class="fa fa-user-plus followperson-icon"></i>
