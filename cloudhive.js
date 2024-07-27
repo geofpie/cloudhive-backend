@@ -18,6 +18,7 @@ const crypto = require('crypto');
 const path = require('path');
 const dynamoDB = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' });
 const lambda = new AWS.Lambda({region: 'us-east-1'});
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const port = 8080;
@@ -61,8 +62,15 @@ db.connect((err) => {
     console.log('Connected to MySQL database');
 });
 
+// Create a rate limiter
+const registerRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.'
+});
+
 // Register endpoint
-app.post('/api/register', (req, res) => {
+app.post('/api/register', logIpAddress, registerRateLimiter, (req, res) => {
     const { username, email, password } = req.body;
 
     db.query('SELECT * FROM users WHERE username = ? OR email = ?', [username, email], (err, results) => {
@@ -145,6 +153,13 @@ const verifyToken = (req, res, next) => {
 
         next();
     });
+};
+
+// Middleware to log IP address
+const logIpAddress = (req, res, next) => {
+    const ip = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0] : req.connection.remoteAddress;
+    console.log(`IP Address: ${ip} - Requested URL: ${req.originalUrl} - Method: ${req.method}`);
+    next();
 };
 
 // New login and fetch user info endpoint
