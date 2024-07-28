@@ -68,7 +68,12 @@ db.connect((err) => {
 const registerRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // Limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.'
+    message: 'Too many requests from this IP, please try again later.',
+    keyGenerator: (req) => {
+        // Get the IP address from 'X-Forwarded-For' or default to remoteAddress
+        const ip = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0] : req.connection.remoteAddress;
+        return ip;
+    }
 });
 
 // Middleware to log IP address
