@@ -158,7 +158,7 @@ const verifyToken = (req, res, next) => {
     const token = req.cookies.token;
 
     if (!token) {
-        return res.status(401).json({ redirect: '/' });
+        return res.status(401).json();
     }
 
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
