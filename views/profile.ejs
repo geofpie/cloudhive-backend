@@ -71,11 +71,11 @@
                 </li>
                 <% if (loggedInUser.username === user.username) { %>
                     <li class="nav-item hive-nav-btn active">
-                        <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#">{user}</a>
+                        <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#"></a>
                     </li> 
                 <% } else { %>
                     <li class="nav-item hive-nav-btn">
-                        <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#">{user}</a>
+                        <a class="nav-link hive-logged-in-user-name" id="hive-logged-in-user-name" href="#"></a>
                     </li>
                  <% } %>
                  <li class="nav-item hive-nav-btn">
@@ -251,21 +251,6 @@
         </div>
     </div>
 </div>
-<!-- CropperJS Modal -->
-<div id="cropperModal" class="cropper-modal hidden">
-    <div class="cropper-modal-content">
-        <div class="cropper-modal-header">
-            <h2>Crop Profile Picture</h2>
-            <button id="closeCropperModal" class="modal-close-btn">&times;</button>
-        </div>
-        <div class="cropper-modal-body">
-            <img id="cropperImage" src="#" alt="Crop Image">
-        </div>
-        <div class="cropper-modal-footer">
-            <button id="cropImageButton" class="btn btn-primary">Crop</button>
-        </div>
-    </div>
-</div>
 <!-- Follow Actions Modal -->
 <div id="followActionsModal" class="follow-modal">
     <div class="follow-modal-dialog">
@@ -280,6 +265,26 @@
             <div class="follow-modal-footer">
                 <button type="button" class="btn-secondary" onclick="closeFollowActionsModal()">Cancel</button>
                 <button type="button" class="btn-primary" id="confirmFollowAction" onclick="handleModalConfirm()">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Custom Modal for Image Crop -->
+<div id="cropModal" class="crop-modal">
+    <div class="crop-modal-dialog">
+        <div class="crop-modal-content">
+            <div class="crop-modal-header">
+                <h5 class="crop-modal-title">Crop Your Profile Picture</h5>
+                <button type="button" class="crop-modal-close" onclick="closeCropModal()">&times;</button>
+            </div>
+            <div class="crop-modal-body">
+                <div id="cropper-container">
+                    <img id="cropper-image" class="cropper-image" src="" alt="Image to crop">
+                </div>
+            </div>
+            <div class="crop-modal-footer">
+                <button type="button" class="crop-modal-cancel" onclick="closeCropModal()">Cancel</button>
+                <button id="crop-submit-btn" type="button" class="crop-modal-confirm">Crop Image</button>
             </div>
         </div>
     </div>
