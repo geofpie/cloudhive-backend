@@ -299,8 +299,8 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
             return res.status(400).json({ error: 'Unsupported file type' });
     }
 
-    const randomString = crypto.randomBytes(6).toString('hex');
-    const profilePicKey = `profile-pics/${req.user.userId}-${req.user.username}-${randomString}.${extension}`;
+    const randomString = crypto.randomBytes(8).toString('hex');
+    const profilePicKey = `profile-pics/${randomString}.${extension}`;
 
     // Create S3 upload parameters
     const params = {
@@ -1376,7 +1376,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
         } else {
             // If no new profile picture, retain the old key and URL
             updates.profilepic_key = oldProfilePicKey;
-            updates.profile_pic = oldProfilePicKey ? `https://cloudhive-userdata.s3.amazonaws.com/profile_pic/${oldProfilePicKey}` : null;
+            updates.profile_pic = oldProfilePicKey ? `https://cloudhive-userdata.s3.amazonaws.com/${oldProfilePicKey}` : null;
         }
 
         if (headerPic) {
