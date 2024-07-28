@@ -1338,7 +1338,6 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
             first_name: firstName,
             last_name: lastName,
             username,
-            email
         };
 
         // Function to upload image to S3
