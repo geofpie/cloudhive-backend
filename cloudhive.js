@@ -1507,34 +1507,39 @@ app.post('/api/change_email', verifyToken, (req, res) => {
     });
 });
 
+// Cancel Follow Request Handler
 app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
+    const { username } = req.params;  // Extract the username from the route parameter
+    const { userId } = req.user;      // Get the user ID from the JWT token
+
+    if (!username) {
+        return res.status(400).send('Username is required');
+    }
+
     try {
-        const username = req.params.username;
-        const userId = req.user.id; // Assuming `req.user.id` is set by the `verifyToken` middleware
-
-        // Retrieve the ID of the user to whom the follow request was sent
-        const [followedUser] = await db.query('SELECT user_id FROM users WHERE username = ?', [username]);
-
-        if (!followedUser) {
+        // Query the ID of the user to be followed
+        const [user] = await db.query('SELECT user_id FROM users WHERE username = ?', [username]);
+        
+        if (!user) {
             return res.status(404).send('User not found');
         }
 
-        const followedId = followedUser.id;
+        const followedId = user.user_id;
 
-        // Delete the follow request from the database
+        // Perform the delete operation based on IDs
         const result = await db.query(
-            'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "requested"',
-            [userId, followedId]
+            'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = ?',
+            [userId, followedId, 'requested']
         );
 
         if (result.affectedRows > 0) {
             res.send('Follow request canceled successfully');
         } else {
-            res.status(400).send('Follow request not found or already processed');
+            res.status(404).send('Follow request not found or already processed');
         }
     } catch (error) {
         console.error('Error canceling follow request:', error);
-        res.status(500).send('Internal server error');
+        res.status(500).send('Internal Server Error');
     }
 });
 
