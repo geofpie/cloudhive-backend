@@ -1524,7 +1524,8 @@ app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
         const [results] = await db.query('SELECT user_id FROM users WHERE username = ?', [username]);
         console.log('Results from user query:', results);
 
-        if (results.length === 0) {
+        // Check if results is an array and contains user_id
+        if (!Array.isArray(results) || results.length === 0) {
             return res.status(404).json({ error: 'User not found' });
         }
 
