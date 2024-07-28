@@ -838,27 +838,6 @@ app.get('/api/approve-follow/:username', (req, res) => {
     });
 });
 
-app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
-    const usernameToCancel = req.params.username;
-    const loggedInUser = req.user.username;
-
-    try {
-        const followRequest = await Follow.findOneAndDelete({ 
-            follower: loggedInUser, 
-            following: usernameToCancel 
-        });
-
-        if (followRequest) {
-            res.send('Follow request canceled successfully');
-        } else {
-            res.status(404).send('Follow request not found');
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Error canceling follow request');
-    }
-});
-
 // Endpoint to fetch follow requests for the logged-in user
 app.get('/api/follow-requests', verifyToken, (req, res) => {
     const userId = req.user.userId;
@@ -1528,6 +1507,36 @@ app.post('/api/change_email', verifyToken, (req, res) => {
     });
 });
 
+app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
+    try {
+        const username = req.params.username;
+        const userId = req.user.id; // Assuming `req.user.id` is set by the `verifyToken` middleware
+
+        // Retrieve the ID of the user to whom the follow request was sent
+        const [followedUser] = await db.query('SELECT user_id FROM users WHERE username = ?', [username]);
+
+        if (!followedUser) {
+            return res.status(404).send('User not found');
+        }
+
+        const followedId = followedUser.id;
+
+        // Delete the follow request from the database
+        const result = await db.query(
+            'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "requested"',
+            [userId, followedId]
+        );
+
+        if (result.affectedRows > 0) {
+            res.send('Follow request canceled successfully');
+        } else {
+            res.status(400).send('Follow request not found or already processed');
+        }
+    } catch (error) {
+        console.error('Error canceling follow request:', error);
+        res.status(500).send('Internal server error');
+    }
+});
 
 app.use((req, res) => {
     res.redirect('/');
