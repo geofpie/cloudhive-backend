@@ -210,7 +210,6 @@ app.post('/api/login_redirect', (req, res) => {
                 }
 
                 const userInfo = results[0];
-                console.log(userInfo);
 
                 // Generate JWT token with correct user information
                 const token = jwt.sign({ userId: user.user_id, username: userInfo.username, email: userInfo.email }, JWT_SECRET, { expiresIn: '2h' });
@@ -983,8 +982,6 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                 const data = await dynamoDB.query(params).promise();
 
                 // Log the result of the DynamoDB query
-                console.log('Fetched posts data from DynamoDB:', data);
-
                 const getUserProfileDataQuery = 'SELECT profilepic_key, first_name FROM users WHERE user_id = ?';
                 const userProfileDataResults = await Promise.all(data.Items.map(post => {
                     return new Promise((resolve, reject) => {
@@ -1055,7 +1052,6 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
         const paginatedPosts = allPosts.slice(0, 8);
 
         // Log the paginated posts and lastTimestamp for debugging
-        console.log('Paginated posts:', paginatedPosts);
         const lastTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postTimestamp : null;
         console.log('LastTimestamp to be sent to frontend:', lastTimestampValue);
 
@@ -1128,7 +1124,6 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
 
             try {
                 const data = await dynamoDB.query(params).promise();
-                console.log('Fetched posts data from DynamoDB:', data);
 
                 const getUserProfileDataQuery = 'SELECT profilepic_key, first_name FROM users WHERE user_id = ?';
                 const userProfileDataResults = await Promise.all(data.Items.map(post => {
@@ -1193,7 +1188,6 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
 
             allPosts.sort((a, b) => new Date(b.postTimestamp).getTime() - new Date(a.postTimestamp).getTime());
             const paginatedPosts = allPosts.slice(0, 8);
-            console.log('Paginated posts:', paginatedPosts);
             const lastTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postTimestamp : null;
             console.log('LastTimestamp to be sent to frontend:', lastTimestampValue);
 
