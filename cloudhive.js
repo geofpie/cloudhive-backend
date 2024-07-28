@@ -1344,7 +1344,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
         const uploadToS3 = (file, folder) => {
             return s3.upload({
                 Bucket: 'cloudhive-userdata',
-                Key: `${folder}/${crypto.randomBytes(12).toString('hex')}.'jpeg'`,
+                Key: `${folder}/${crypto.randomBytes(12).toString('hex')}.jpeg`,
                 Body: file.buffer,
                 ContentType: file.mimetype
             }).promise();
