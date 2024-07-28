@@ -1699,7 +1699,20 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
             return res.status(403).json({ message: 'You do not have permission to delete this post.' });
         }
 
-        // Proceed with deletion
+        // Check if the post has an associated image
+        if (post.postImageKey) {
+            // Define parameters for S3 delete operation
+            const deleteImageParams = {
+                Bucket: 'cloudhive-userdata',
+                Key: post.postImageKey
+            };
+
+            // Delete the image from S3
+            await s3.deleteObject(deleteImageParams).promise();
+            console.log(`Deleted image from S3: ${post.postImageKey}`);
+        }
+
+        // Proceed with deletion from DynamoDB
         const deletePostParams = {
             TableName: 'cloudhive-postdb',
             Key: {
@@ -1710,7 +1723,7 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
 
         await dynamoDB.delete(deletePostParams).promise();
 
-        res.status(200).json({ message: 'Post deleted successfully.' });
+        res.status(200).json({ message: 'Post and associated image deleted successfully.' });
     } catch (error) {
         console.error('Error deleting post:', error);
         res.status(500).json({ message: 'An error occurred while deleting the post.' });
