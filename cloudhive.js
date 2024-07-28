@@ -1206,6 +1206,9 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
                     post.firstName = first_name;
                     const likedPost = likedPosts.find(likedPost => likedPost.postId === post.postId);
                     post.isLiked = likedPost ? likedPost.isLiked : false;
+
+                    // Add `isUserPost` flag
+                    post.isUserPost = post.userId.toString() === loggedInUserId.toString();
                 }
 
                 allPosts = allPosts.concat(data.Items);
