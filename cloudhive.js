@@ -1515,31 +1515,43 @@ app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
         // Get the logged-in user's ID from the token
         const { userId } = req.user;
 
-        // Fetch the user_id of the user to be unfollowed
-        const [userResult] = await db.query(
+        // Perform the query to get the user_id of the user to be unfollowed
+        db.query(
             'SELECT user_id FROM users WHERE username = ?',
-            [followedUsername]
+            [followedUsername],
+            async (err, results) => {
+                if (err) {
+                    console.error('Database query error:', err);
+                    return res.status(500).json({ message: 'Internal server error' });
+                }
+
+                // Check if user was found
+                if (results.length === 0) {
+                    return res.status(404).json({ message: 'User not found' });
+                }
+
+                const followedUserId = results[0].user_id;
+
+                // Perform the delete operation
+                db.query(
+                    'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "requested"',
+                    [userId, followedUserId],
+                    (deleteErr, deleteResults) => {
+                        if (deleteErr) {
+                            console.error('Delete operation error:', deleteErr);
+                            return res.status(500).json({ message: 'Internal server error' });
+                        }
+
+                        // Check if any rows were affected
+                        if (deleteResults.affectedRows === 0) {
+                            return res.status(404).json({ message: 'Follow request not found' });
+                        }
+
+                        res.status(200).json({ message: 'Follow request canceled successfully' });
+                    }
+                );
+            }
         );
-
-        // Check if the user to be unfollowed exists
-        if (userResult.length === 0) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        const followedUserId = userResult[0].user_id;
-
-        // Perform the delete operation
-        const [deleteResult] = await db.query(
-            'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "requested"',
-            [userId, followedUserId]
-        );
-
-        // Check if any rows were affected
-        if (deleteResult.affectedRows === 0) {
-            return res.status(404).json({ message: 'Follow request not found' });
-        }
-
-        res.status(200).json({ message: 'Follow request canceled successfully' });
     } catch (error) {
         console.error('Error canceling follow request:', error);
         res.status(500).json({ message: 'Internal server error' });
