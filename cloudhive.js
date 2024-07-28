@@ -1362,13 +1362,13 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
 
         if (profilePic) {
             // Upload new profile picture and delete old one if exists
-            s3Operations.push(uploadToS3(profilePic, 'profile_pic').then(data => {
+            s3Operations.push(uploadToS3(profilePic, 'profile_pics').then(data => {
                 updates.profilepic_key = data.Key;
                 updates.profile_pic = data.Location; // Save the URL
                 console.log('Profile picture uploaded to S3 with URL:', data.Location);
 
                 if (oldProfilePicKey) {
-                    return deleteFromS3(oldProfilePicKey, 'profile_pic').then(() => {
+                    return deleteFromS3(oldProfilePicKey, 'profile_pics').then(() => {
                         console.log('Old profile picture deleted from S3');
                     });
                 }
