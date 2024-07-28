@@ -1507,43 +1507,37 @@ app.post('/api/change_email', verifyToken, (req, res) => {
     });
 });
 
-// Cancel Follow Request Handler
 app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
     const { username } = req.params;
-    const { userId } = req.user;
+    const { userId } = req.user; 
 
     if (!username) {
-        return res.status(400).send('Username is required');
+        return res.status(400).json({ error: 'Username is required' });
     }
 
     try {
-        // Query the ID of the user to be followed
-        const userResult = await db.query('SELECT user_id FROM users WHERE username = ?', [username]);
-        
-        console.log('User result:', userResult);
-
-        if (userResult.length === 0) {
-            return res.status(404).send('User not found');
+        // Query to get the ID of the user to be followed
+        const [rows] = await db.query('SELECT user_id FROM users WHERE username = ?', [username]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
         }
 
-        const followedId = userResult[0].user_id;
+        const followedUserId = rows[0].user_id;
 
-        // Perform the delete operation based on IDs
-        const deleteResult = await db.query(
-            'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = ?',
-            [userId, followedId, 'requested']
+        // Delete the follow request from the follows table
+        const [result] = await db.query(
+            'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "requested"',
+            [userId, followedUserId]
         );
 
-        console.log('Delete result:', deleteResult);
-
-        if (deleteResult.affectedRows > 0) {
-            res.send('Follow request canceled successfully');
-        } else {
-            res.status(404).send('Follow request not found or already processed');
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Follow request not found or already canceled' });
         }
+
+        res.status(200).json({ message: 'Follow request canceled successfully' });
     } catch (error) {
         console.error('Error canceling follow request:', error);
-        res.status(500).send('Internal Server Error');
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
