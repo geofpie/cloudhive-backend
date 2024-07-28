@@ -1064,6 +1064,9 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                     // Attach `isLiked` status to the post
                     const likedPost = likedPosts.find(likedPost => likedPost.postId === post.postId);
                     post.isLiked = likedPost ? likedPost.isLiked : false;
+
+                    // Add `isUserPost` flag
+                    post.isUserPost = post.userId === loggedInUserId;
                 }
 
                 allPosts = allPosts.concat(data.Items);
