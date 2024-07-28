@@ -1730,7 +1730,7 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
             return res.status(404).json({ message: 'Post not found.' });
         }
 
-        if (post.userId !== userId) {
+        if (post.userId.toString() !== userId.toString()) {
             return res.status(403).json({ message: 'You do not have permission to delete this post.' });
         }
 
