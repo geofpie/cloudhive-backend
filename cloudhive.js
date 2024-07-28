@@ -1608,6 +1608,28 @@ app.delete('/api/unfollow/:username', verifyToken, async (req, res) => {
     }
 });
 
+// Fetch users the logged-in user is following
+app.get('/api/following', async (req, res) => {
+    const userId = req.user.id; // Assuming user ID is stored in req.user
+    try {
+        const following = await db.query('SELECT * FROM users WHERE id IN (SELECT followed_id FROM follows WHERE follower_id = ?)', [userId]);
+        res.json(following);
+    } catch (error) {
+        res.status(500).json({ error: 'Unable to fetch following users.' });
+    }
+});
+
+// Fetch users who follow the logged-in user
+app.get('/api/followedBy', async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const followedBy = await db.query('SELECT * FROM users WHERE id IN (SELECT follower_id FROM follows WHERE followed_id = ?)', [userId]);
+        res.json(followedBy);
+    } catch (error) {
+        res.status(500).json({ error: 'Unable to fetch followers.' });
+    }
+});
+
 app.use((req, res) => {
     res.redirect('/');
 });
