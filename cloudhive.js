@@ -1709,14 +1709,20 @@ app.get('/api/followers', verifyToken, (req, res) => {
 });
 
 // Route to handle post deletion with token verification
-app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
+app.delete('/api/posts/:postId', verifyToken, (req, res) => {
     const postId = req.params.postId;
     const userId = req.user.userId; // Assuming the decoded token contains userId
 
-    try {
-        // Check if the post belongs to the user
-        const [rows] = await pool.query('SELECT * FROM posts WHERE post_id = ?', [postId]);
-        const post = rows[0];
+    // Check if the post belongs to the user
+    const checkPostQuery = 'SELECT * FROM posts WHERE post_id = ?';
+
+    db.query(checkPostQuery, [postId], (err, results) => {
+        if (err) {
+            console.error('Error fetching post:', err);
+            return res.status(500).json({ message: 'An error occurred while checking the post.' });
+        }
+
+        const post = results[0];
 
         if (!post) {
             return res.status(404).json({ message: 'Post not found.' });
@@ -1727,17 +1733,21 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
         }
 
         // Proceed with deletion
-        const [result] = await pool.query('DELETE FROM posts WHERE post_id = ?', [postId]);
+        const deletePostQuery = 'DELETE FROM posts WHERE post_id = ?';
 
-        if (result.affectedRows > 0) {
-            res.status(200).json({ message: 'Post deleted successfully.' });
-        } else {
-            res.status(404).json({ message: 'Post not found.' });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'An error occurred while deleting the post.' });
-    }
+        db.query(deletePostQuery, [postId], (err, result) => {
+            if (err) {
+                console.error('Error deleting post:', err);
+                return res.status(500).json({ message: 'An error occurred while deleting the post.' });
+            }
+
+            if (result.affectedRows > 0) {
+                res.status(200).json({ message: 'Post deleted successfully.' });
+            } else {
+                res.status(404).json({ message: 'Post not found.' });
+            }
+        });
+    });
 });
 
 app.use((req, res) => {
