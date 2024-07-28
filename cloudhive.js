@@ -1508,38 +1508,41 @@ app.post('/api/change_email', verifyToken, (req, res) => {
 });
 
 app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
-    const { username } = req.params;
-    const { userId } = req.user; // Logged-in user's ID from the token
-
-    if (!username) {
-        return res.status(400).json({ error: 'Username is required' });
-    }
-
     try {
-        // Step 1: Query to get the followed user's user_id
-        const followedUserQuery = 'SELECT user_id FROM users WHERE username = ?';
-        console.log(followedUserQuery);
-        const [followedUserResults] = await db.query(followedUserQuery, [username]);
+        // Get the username from the request parameters
+        const followedUsername = req.params.username;
 
-        // Check if the followed user exists
-        if (!Array.isArray(followedUserResults) || followedUserResults.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+        // Get the logged-in user's ID from the token
+        const { userId } = req.user;
+
+        // Fetch the user_id of the user to be unfollowed
+        const [results] = await db.query(
+            'SELECT user_id FROM users WHERE username = ?',
+            [followedUsername]
+        );
+
+        // Check if the user to be unfollowed exists
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        const followedUserId = followedUserResults[0].user_id;
+        const followedUserId = results[0].user_id;
 
-        // Step 2: Delete the follow request
-        const deleteFollowQuery = 'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "requested"';
-        const [deleteResult] = await db.query(deleteFollowQuery, [userId, followedUserId]);
+        // Perform the delete operation
+        const [deleteResult] = await db.query(
+            'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "requested"',
+            [userId, followedUserId]
+        );
 
+        // Check if any rows were affected
         if (deleteResult.affectedRows === 0) {
-            return res.status(404).json({ error: 'Follow request not found or already canceled' });
+            return res.status(404).json({ message: 'Follow request not found' });
         }
 
         res.status(200).json({ message: 'Follow request canceled successfully' });
     } catch (error) {
         console.error('Error canceling follow request:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 
