@@ -1608,24 +1608,38 @@ app.delete('/api/unfollow/:username', verifyToken, async (req, res) => {
     }
 });
 
-// Fetch users the logged-in user is following
-app.get('/api/following', async (req, res) => {
-    const userId = req.user.user_id; // Assuming user ID is stored in req.user
+// Route to get users that the logged-in user is following
+app.get('/api/following', verifyToken, async (req, res) => {
     try {
-        const following = await db.query('SELECT * FROM users WHERE user_id IN (SELECT followed_id FROM follows WHERE follower_id = ?)', [userId]);
+        const userId = req.user.userId; // Access user_id from the token payload
+
+        // Query to get users the logged-in user is following
+        const following = await db.query(
+            'SELECT * FROM users WHERE user_id IN (SELECT followed_id FROM follows WHERE follower_id = ?)', 
+            [userId]
+        );
+
         res.json(following);
     } catch (error) {
+        console.error('Error fetching following:', error);
         res.status(500).json({ error: 'Unable to fetch following users.' });
     }
 });
 
-// Fetch users who follow the logged-in user
-app.get('/api/followedBy', async (req, res) => {
-    const userId = req.user.user_id;
+// Route to get users following the logged-in user
+app.get('/api/followedBy', verifyToken, async (req, res) => {
     try {
-        const followedBy = await db.query('SELECT * FROM users WHERE user_id IN (SELECT follower_id FROM follows WHERE followed_id = ?)', [userId]);
+        const userId = req.user.userId; // Access user_id from the token payload
+
+        // Query to get users following the logged-in user
+        const followedBy = await db.query(
+            'SELECT * FROM users WHERE user_id IN (SELECT follower_id FROM follows WHERE followed_id = ?)', 
+            [userId]
+        );
+
         res.json(followedBy);
     } catch (error) {
+        console.error('Error fetching followers:', error);
         res.status(500).json({ error: 'Unable to fetch followers.' });
     }
 });
