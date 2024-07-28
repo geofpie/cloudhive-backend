@@ -124,8 +124,8 @@ app.post('/api/register', logIpAddress, registerRateLimiter, async (req, res) =>
                 // Prepare payload for Lambda
                 const payload = {
                     body: JSON.stringify({
-                        email: req.user.email, // Assuming you have the email in req.user
-                        username: req.user.username
+                        email: email, // Assuming you have the email in req.user
+                        username: username
                     })
                 };
 
@@ -348,6 +348,32 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
                     console.error('Error updating user information in database:', err);
                     return res.status(500).json({ error: 'Failed to update user information' });
                 }
+
+                // Prepare payload for Lambda
+                const payload = {
+                    body: JSON.stringify({
+                        email: req.user.email, // Assuming you have the email in req.user
+                        username: req.user.username
+                    })
+                };
+
+                // Invoke Lambda function to send a welcome email
+                const lambdaParams = {
+                    FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveWelcomeEmail', 
+                    InvocationType: 'Event', // Asynchronous invocation
+                    Payload: JSON.stringify(payload)
+                };
+
+                lambda.invoke(lambdaParams, (lambdaErr, data) => {
+                    if (lambdaErr) {
+                        console.error('Error invoking Lambda function:', lambdaErr);
+                        console.log(req.user.email);
+                        console.log(payload);
+                    } else {
+                        console.log('Lambda function invoked successfully:', data);
+                        console.log(payload);
+                    }
+                });
 
                 // Notify user registration is successful
                 res.status(200).json({ message: 'Profile picture and user information updated successfully', profilePicUrl });
