@@ -299,7 +299,7 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
             return res.status(400).json({ error: 'Unsupported file type' });
     }
 
-    const randomString = crypto.randomBytes(8).toString('hex');
+    const randomString = crypto.randomBytes(12).toString('hex');
     const profilePicKey = `profile-pics/${randomString}.${extension}`;
 
     // Create S3 upload parameters
