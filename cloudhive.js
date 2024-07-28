@@ -1611,7 +1611,7 @@ app.delete('/api/unfollow/:username', verifyToken, async (req, res) => {
 // Route to get users that the logged-in user is following
 app.get('/api/following', verifyToken, async (req, res) => {
     try {
-        const userId = req.user.user_id; // Access user_id from the token payload
+        const userId = req.user.userId; // Access user_id from the token payload
 
         // Query to get users the logged-in user is following
         const [rows] = await db.query(
@@ -1630,7 +1630,7 @@ app.get('/api/following', verifyToken, async (req, res) => {
 // Route to get users following the logged-in user
 app.get('/api/followedBy', verifyToken, async (req, res) => {
     try {
-        const userId = req.user.user_id; // Access user_id from the token payload
+        const userId = req.user.userId; // Access user_id from the token payload
 
         // Query to get users following the logged-in user
         const [rows] = await db.query(
