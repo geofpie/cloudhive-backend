@@ -158,11 +158,13 @@ const verifyToken = (req, res, next) => {
     const token = req.cookies.token;
 
     if (!token) {
+        console.log('no token found. redirecting to login');
         return res.status(401).json();
     }
 
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
+            console.log('token error! redirecting...')
             return res.status(401).json({ redirect: '/' });
         }
 
@@ -435,14 +437,6 @@ app.get('/api/friends', verifyToken, async (req, res) => {
         console.error('Error fetching friends:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
-});
-
-// Route to render the friends page
-app.get('/friends', verifyToken, (req, res) => {
-    res.render('friends', {
-        user: req.user, // Pass user data to the template
-        friends: [] // Initially pass an empty array; this will be populated via AJAX
-    });
 });
 
 app.get('/:username', verifyToken, (req, res) => {
