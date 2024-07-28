@@ -1717,7 +1717,10 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
         // Check if the post belongs to the user
         const getPostParams = {
             TableName: 'cloudhive-postdb',
-            Key: { postId: postId }
+            Key: {
+                userId: userId, // Use partition key
+                postId: postId   // Use sort key
+            }
         };
 
         const postResult = await dynamoDB.get(getPostParams).promise();
@@ -1734,7 +1737,10 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
         // Proceed with deletion
         const deletePostParams = {
             TableName: 'cloudhive-postdb',
-            Key: { postId: postId }
+            Key: {
+                userId: userId, // Use partition key
+                postId: postId   // Use sort key
+            }
         };
 
         await dynamoDB.delete(deletePostParams).promise();
