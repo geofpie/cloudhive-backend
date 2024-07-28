@@ -1608,46 +1608,90 @@ app.delete('/api/unfollow/:username', verifyToken, async (req, res) => {
     }
 });
 
-// Route to get users that the logged-in user is following
-app.get('/api/following', verifyToken, async (req, res) => {
-    try {
-        const userId = req.user.userId; // Access user_id from the token payload
+// Endpoint to fetch users that the logged-in user is following
+app.get('/api/following', verifyToken, (req, res) => {
+    const userId = req.user.user_id; // Ensure the correct field name for user ID
 
-        // Query to get users the logged-in user is following
-        const [results] = await db.query(
-            'SELECT * FROM users WHERE user_id IN (SELECT followed_id FROM follows WHERE follower_id = ?)', 
-            [userId]
-        );
+    const fetchFollowingQuery = `
+        SELECT users.user_id, users.username, users.first_name, users.last_name, users.profilepic_key
+        FROM follows
+        JOIN users ON follows.followed_id = users.user_id
+        WHERE follows.follower_id = ?
+    `;
 
-        // Ensure results are an array
-        const users = Array.isArray(results) ? results : [];
+    db.query(fetchFollowingQuery, [userId], async (err, results) => {
+        if (err) {
+            console.error('Error fetching following users:', err);
+            return res.status(500).send('Internal Server Error');
+        }
 
-        res.json(users);
-    } catch (error) {
-        console.error('Error fetching following:', error);
-        res.status(500).json({ error: 'Unable to fetch following users.' });
-    }
+        const followingUsers = await Promise.all(results.map(async user => {
+            if (user.profilepic_key) {
+                const params = {
+                    Bucket: 'cloudhive-userdata',
+                    Key: user.profilepic_key,
+                    Expires: 3600 // 1 hour expiration (in seconds)
+                };
+
+                try {
+                    const url = await s3.getSignedUrlPromise('getObject', params);
+                    user.profile_picture_url = url;
+                    console.log(`Presigned URL generated: ${url}`);
+                } catch (err) {
+                    console.error('Error generating signed URL for profile picture:', err);
+                    user.profile_picture_url = '../assets/default-profile.jpg'; // Fallback to default profile picture
+                }
+            } else {
+                user.profile_picture_url = '../assets/default-profile.jpg'; // Fallback to default profile picture
+            }
+            return user;
+        }));
+
+        res.json(followingUsers);
+    });
 });
 
-// Route to get users following the logged-in user
-app.get('/api/followedBy', verifyToken, async (req, res) => {
-    try {
-        const userId = req.user.userId; // Access user_id from the token payload
+// Endpoint to fetch users who are following the logged-in user
+app.get('/api/followedBy', verifyToken, (req, res) => {
+    const userId = req.user.user_id; // Ensure the correct field name for user ID
 
-        // Query to get users following the logged-in user
-        const [results] = await db.query(
-            'SELECT * FROM users WHERE user_id IN (SELECT follower_id FROM follows WHERE followed_id = ?)', 
-            [userId]
-        );
+    const fetchFollowersQuery = `
+        SELECT users.user_id, users.username, users.first_name, users.last_name, users.profilepic_key
+        FROM follows
+        JOIN users ON follows.follower_id = users.user_id
+        WHERE follows.followed_id = ?
+    `;
 
-        // Ensure results are an array
-        const users = Array.isArray(results) ? results : [];
+    db.query(fetchFollowersQuery, [userId], async (err, results) => {
+        if (err) {
+            console.error('Error fetching followers:', err);
+            return res.status(500).send('Internal Server Error');
+        }
 
-        res.json(users);
-    } catch (error) {
-        console.error('Error fetching followers:', error);
-        res.status(500).json({ error: 'Unable to fetch followers.' });
-    }
+        const followers = await Promise.all(results.map(async user => {
+            if (user.profilepic_key) {
+                const params = {
+                    Bucket: 'cloudhive-userdata',
+                    Key: user.profilepic_key,
+                    Expires: 3600 // 1 hour expiration (in seconds)
+                };
+
+                try {
+                    const url = await s3.getSignedUrlPromise('getObject', params);
+                    user.profile_picture_url = url;
+                    console.log(`Presigned URL generated: ${url}`);
+                } catch (err) {
+                    console.error('Error generating signed URL for profile picture:', err);
+                    user.profile_picture_url = '../assets/default-profile.jpg'; // Fallback to default profile picture
+                }
+            } else {
+                user.profile_picture_url = '../assets/default-profile.jpg'; // Fallback to default profile picture
+            }
+            return user;
+        }));
+
+        res.json(followers);
+    });
 });
 
 app.use((req, res) => {
