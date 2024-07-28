@@ -1708,6 +1708,37 @@ app.get('/api/followers', verifyToken, (req, res) => {
     });
 });
 
+// Route to handle post deletion with token verification
+app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
+    const postId = req.params.postId;
+    const userId = req.user.userId; // Assuming the decoded token contains userId
+
+    try {
+        // Check if the post belongs to the user
+        const post = await db.getPostById(postId);
+
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found.' });
+        }
+
+        if (post.userId !== userId) {
+            return res.status(403).json({ message: 'You do not have permission to delete this post.' });
+        }
+
+        // Proceed with deletion
+        const result = await db.deletePost(postId);
+
+        if (result.affectedRows > 0) {
+            res.status(200).json({ message: 'Post deleted successfully.' });
+        } else {
+            res.status(404).json({ message: 'Post not found.' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'An error occurred while deleting the post.' });
+    }
+});
+
 app.use((req, res) => {
     res.redirect('/');
 });
