@@ -1516,17 +1516,17 @@ app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
         const { userId } = req.user;
 
         // Fetch the user_id of the user to be unfollowed
-        const [results] = await db.query(
+        const [userResult] = await db.query(
             'SELECT user_id FROM users WHERE username = ?',
             [followedUsername]
         );
 
         // Check if the user to be unfollowed exists
-        if (results.length === 0) {
+        if (userResult.length === 0) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const followedUserId = results[0].user_id;
+        const followedUserId = userResult[0].user_id;
 
         // Perform the delete operation
         const [deleteResult] = await db.query(
