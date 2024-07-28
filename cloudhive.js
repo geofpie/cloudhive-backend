@@ -1509,28 +1509,27 @@ app.post('/api/change_email', verifyToken, (req, res) => {
 
 app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
     const { username } = req.params;
-    const { userId } = req.user; // Logged-in user's ID
+    const { userId } = req.user; // Logged-in user's ID from the token
 
     if (!username) {
         return res.status(400).json({ error: 'Username is required' });
     }
 
     try {
-        // Step 1: Get the user_id of the followed user based on username
-        const [results] = await db.query('SELECT user_id FROM users WHERE username = ?', [username]);
+        // Step 1: Query to get the followed user's user_id
+        const followedUserQuery = 'SELECT user_id FROM users WHERE username = ?';
+        const [followedUserResults] = await db.query(followedUserQuery, [username]);
 
-        // Ensure the results are in the correct format
-        if (!Array.isArray(results) || results.length === 0) {
+        // Check if the followed user exists
+        if (!Array.isArray(followedUserResults) || followedUserResults.length === 0) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const followedUserId = results[0].user_id;
+        const followedUserId = followedUserResults[0].user_id;
 
-        // Step 2: Delete the follow request from the follows table
-        const [deleteResult] = await db.query(
-            'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "requested"',
-            [userId, followedUserId]
-        );
+        // Step 2: Delete the follow request
+        const deleteFollowQuery = 'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "requested"';
+        const [deleteResult] = await db.query(deleteFollowQuery, [userId, followedUserId]);
 
         if (deleteResult.affectedRows === 0) {
             return res.status(404).json({ error: 'Follow request not found or already canceled' });
