@@ -1518,6 +1518,7 @@ app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
     try {
         // Step 1: Query to get the followed user's user_id
         const followedUserQuery = 'SELECT user_id FROM users WHERE username = ?';
+        console.log(followedUserQuery);
         const [followedUserResults] = await db.query(followedUserQuery, [username]);
 
         // Check if the followed user exists
