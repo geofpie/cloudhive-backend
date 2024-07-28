@@ -1518,7 +1518,7 @@ app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
 
     try {
         // Query the ID of the user to be followed
-        const userResult = await db.query('SELECT id FROM users WHERE username = ?', [username]);
+        const userResult = await db.query('SELECT user_id FROM users WHERE username = ?', [username]);
         
         console.log('User result:', userResult);
 
@@ -1526,7 +1526,7 @@ app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
             return res.status(404).send('User not found');
         }
 
-        const followedId = userResult[0].id;
+        const followedId = userResult[0].user_id;
 
         // Perform the delete operation based on IDs
         const deleteResult = await db.query(
