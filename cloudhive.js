@@ -1351,10 +1351,10 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
         };
 
         // Function to delete image from S3
-        const deleteFromS3 = (key, folder) => {
+        const deleteFromS3 = (key) => {
             return s3.deleteObject({
                 Bucket: 'cloudhive-userdata',
-                Key: `${folder}/${key}`
+                Key: `${key}`
             }).promise();
         };
 
@@ -1368,7 +1368,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
                 console.log('Profile picture uploaded to S3 with URL:', data.Location);
 
                 if (oldProfilePicKey) {
-                    return deleteFromS3(oldProfilePicKey, 'profile-pics').then(() => {
+                    return deleteFromS3(oldProfilePicKey).then(() => {
                         console.log('Old profile picture deleted from S3');
                     });
                 }
@@ -1387,7 +1387,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
                 console.log('Header picture uploaded to S3 with URL:', data.Location);
 
                 if (oldHeaderPicKey) {
-                    return deleteFromS3(oldHeaderPicKey, 'header_pic').then(() => {
+                    return deleteFromS3(oldHeaderPicKey).then(() => {
                         console.log('Old header picture deleted from S3');
                     });
                 }
