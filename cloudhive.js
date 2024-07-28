@@ -1558,6 +1558,57 @@ app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
     }
 });
 
+app.delete('/api/unfollow/:username', verifyToken, async (req, res) => {
+    try {
+        // Get the username from the request parameters
+        const followedUsername = req.params.username;
+
+        // Get the logged-in user's ID from the token
+        const { userId } = req.user;
+
+        // Perform the query to get the user_id of the user to be unfollowed
+        db.query(
+            'SELECT user_id FROM users WHERE username = ?',
+            [followedUsername],
+            async (err, results) => {
+                if (err) {
+                    console.error('Database query error:', err);
+                    return res.status(500).json({ message: 'Internal server error' });
+                }
+
+                // Check if user was found
+                if (results.length === 0) {
+                    return res.status(404).json({ message: 'User not found' });
+                }
+
+                const followedUserId = results[0].user_id;
+
+                // Perform the delete operation
+                db.query(
+                    'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "following"',
+                    [userId, followedUserId],
+                    (deleteErr, deleteResults) => {
+                        if (deleteErr) {
+                            console.error('Delete operation error:', deleteErr);
+                            return res.status(500).json({ message: 'Internal server error' });
+                        }
+
+                        // Check if any rows were affected
+                        if (deleteResults.affectedRows === 0) {
+                            return res.status(404).json({ message: 'Following relationship not found' });
+                        }
+
+                        res.status(200).json({ message: 'User unfollowed successfully' });
+                    }
+                );
+            }
+        );
+    } catch (error) {
+        console.error('Error unfollowing user:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
 app.use((req, res) => {
     res.redirect('/');
 });

@@ -126,7 +126,10 @@
                                     <i class="fa fa-clock uab"></i>Requested
                                 </button>
                             <% } else if (followStatus === 'following') { %>
-                                <button class="profile-stat hive-user-action" disabled><i class="fa fa-user-plus uab"></i>Following</button>
+                                <button id="follow-button-<%= user.username %>" class="profile-stat hive-user-action" 
+                                        onclick="showFollowActionsModal('unfollow', '<%= user.username %>')">
+                                    <i class="fa fa-user-plus uab"></i>Following
+                                </button>
                             <% } else { %>
                                 <button id="follow-button-<%= user.username %>" class="profile-stat hive-user-action" 
                                         data-username="<%= user.username %>" 
