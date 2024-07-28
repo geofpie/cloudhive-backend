@@ -1718,8 +1718,8 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
         const getPostParams = {
             TableName: 'cloudhive-postdb',
             Key: {
-                userId: userId, // Use partition key
-                postId: postId   // Use sort key
+                userId: userId.toString(), // Use partition key
+                postId: postId.toString()   // Use sort key
             }
         };
 
@@ -1738,8 +1738,8 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
         const deletePostParams = {
             TableName: 'cloudhive-postdb',
             Key: {
-                userId: userId, // Use partition key
-                postId: postId   // Use sort key
+                userId: userId.toString(), // Use partition key
+                postId: postId.toString()   // Use sort key
             }
         };
 
