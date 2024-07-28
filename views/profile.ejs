@@ -119,8 +119,10 @@
                         <% } else { %>
                             <!-- Show follow button -->
                             <% if (followStatus === 'requested') { %>
-                                <button class="profile-stat hive-user-action" data-status="requested" id="cancel-follow-button" onclick="cancelFollowRequest('<%= user.username %>')">
-                                    <i class="fa fa-clock uab"></i><span class="button-text">Requested</span>
+                                <button class="profile-stat hive-user-action" 
+                                        data-username="<%= user.username %>" 
+                                        onclick="showFollowActionsModal('cancel', '<%= user.username %>')">
+                                    <i class="fa fa-clock uab"></i>Requested
                                 </button>
                             <% } else if (followStatus === 'following') { %>
                                 <button class="profile-stat hive-user-action" disabled><i class="fa fa-user-plus uab"></i>Following</button>
@@ -253,6 +255,26 @@
         </div>
         <div class="cropper-modal-footer">
             <button id="cropImageButton" class="btn btn-primary">Crop</button>
+        </div>
+    </div>
+</div>
+<!-- Follow Actions Modal -->
+<div class="modal fade" id="followActionsModal" tabindex="-1" role="dialog" aria-labelledby="followActionsModalLabel" aria-hidden="true">
+    <div class="follow-modal-dialog" role="document">
+        <div class="follow-modal-content">
+            <div class="follow-modal-header">
+                <h5 class="follow-modal-title" id="followActionsModalLabel">Confirm Action</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="follow-modal-body">
+                Are you sure you want to <span id="followActionType"></span> this request?
+            </div>
+            <div class="follow-modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmFollowAction">Confirm</button>
+            </div>
         </div>
     </div>
 </div>
