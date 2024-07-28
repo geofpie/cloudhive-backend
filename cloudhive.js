@@ -1652,7 +1652,7 @@ app.get('/api/following', verifyToken, (req, res) => {
 });
 
 // Endpoint to fetch users who are following the logged-in user
-app.get('/api/followedBy', verifyToken, (req, res) => {
+app.get('/api/followers', verifyToken, (req, res) => {
     const userId = req.user.userId; // Ensure the correct field name for user ID
 
     const fetchFollowersQuery = `
