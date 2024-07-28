@@ -1709,45 +1709,41 @@ app.get('/api/followers', verifyToken, (req, res) => {
 });
 
 // Route to handle post deletion with token verification
-app.delete('/api/posts/:postId', verifyToken, (req, res) => {
+app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
     const postId = req.params.postId;
     const userId = req.user.userId; // Assuming the decoded token contains userId
 
-    // Check if the post belongs to the user
-    const checkPostQuery = 'SELECT * FROM posts WHERE post_id = ?';
+    try {
+        // Check if the post belongs to the user
+        const getPostParams = {
+            TableName: 'cloudhive-postdb',
+            Key: { postId: postId }
+        };
 
-    db.query(checkPostQuery, [postId], (err, results) => {
-        if (err) {
-            console.error('Error fetching post:', err);
-            return res.status(500).json({ message: 'An error occurred while checking the post.' });
-        }
-
-        const post = results[0];
+        const postResult = await dynamoDB.get(getPostParams).promise();
+        const post = postResult.Item;
 
         if (!post) {
             return res.status(404).json({ message: 'Post not found.' });
         }
 
-        if (post.user_id !== userId) {
+        if (post.userId !== userId) {
             return res.status(403).json({ message: 'You do not have permission to delete this post.' });
         }
 
         // Proceed with deletion
-        const deletePostQuery = 'DELETE FROM posts WHERE post_id = ?';
+        const deletePostParams = {
+            TableName: 'cloudhive-postdb',
+            Key: { postId: postId }
+        };
 
-        db.query(deletePostQuery, [postId], (err, result) => {
-            if (err) {
-                console.error('Error deleting post:', err);
-                return res.status(500).json({ message: 'An error occurred while deleting the post.' });
-            }
+        await dynamoDB.delete(deletePostParams).promise();
 
-            if (result.affectedRows > 0) {
-                res.status(200).json({ message: 'Post deleted successfully.' });
-            } else {
-                res.status(404).json({ message: 'Post not found.' });
-            }
-        });
-    });
+        res.status(200).json({ message: 'Post deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        res.status(500).json({ message: 'An error occurred while deleting the post.' });
+    }
 });
 
 app.use((req, res) => {
