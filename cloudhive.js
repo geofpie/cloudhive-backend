@@ -1614,13 +1614,15 @@ app.get('/api/following', verifyToken, async (req, res) => {
         const userId = req.user.userId; // Access user_id from the token payload
 
         // Query to get users the logged-in user is following
-        const [rows] = await db.query(
+        const [results] = await db.query(
             'SELECT * FROM users WHERE user_id IN (SELECT followed_id FROM follows WHERE follower_id = ?)', 
             [userId]
         );
 
-        // Send only the necessary data
-        res.json(rows);
+        // Ensure results are an array
+        const users = Array.isArray(results) ? results : [];
+
+        res.json(users);
     } catch (error) {
         console.error('Error fetching following:', error);
         res.status(500).json({ error: 'Unable to fetch following users.' });
@@ -1633,13 +1635,15 @@ app.get('/api/followedBy', verifyToken, async (req, res) => {
         const userId = req.user.userId; // Access user_id from the token payload
 
         // Query to get users following the logged-in user
-        const [rows] = await db.query(
+        const [results] = await db.query(
             'SELECT * FROM users WHERE user_id IN (SELECT follower_id FROM follows WHERE followed_id = ?)', 
             [userId]
         );
 
-        // Send only the necessary data
-        res.json(rows);
+        // Ensure results are an array
+        const users = Array.isArray(results) ? results : [];
+
+        res.json(users);
     } catch (error) {
         console.error('Error fetching followers:', error);
         res.status(500).json({ error: 'Unable to fetch followers.' });
