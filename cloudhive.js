@@ -1610,7 +1610,7 @@ app.delete('/api/unfollow/:username', verifyToken, async (req, res) => {
 
 // Endpoint to fetch users that the logged-in user is following
 app.get('/api/following', verifyToken, (req, res) => {
-    const userId = req.user.user_id; // Ensure the correct field name for user ID
+    const userId = req.user.userId; // Ensure the correct field name for user ID
 
     const fetchFollowingQuery = `
         SELECT users.user_id, users.username, users.first_name, users.last_name, users.profilepic_key
@@ -1653,7 +1653,7 @@ app.get('/api/following', verifyToken, (req, res) => {
 
 // Endpoint to fetch users who are following the logged-in user
 app.get('/api/followedBy', verifyToken, (req, res) => {
-    const userId = req.user.user_id; // Ensure the correct field name for user ID
+    const userId = req.user.userId; // Ensure the correct field name for user ID
 
     const fetchFollowersQuery = `
         SELECT users.user_id, users.username, users.first_name, users.last_name, users.profilepic_key
