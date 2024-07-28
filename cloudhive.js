@@ -1715,18 +1715,19 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
 
     try {
         // Check if the post belongs to the user
-        const post = await db.getPostById(postId);
+        const [rows] = await pool.query('SELECT * FROM posts WHERE post_id = ?', [postId]);
+        const post = rows[0];
 
         if (!post) {
             return res.status(404).json({ message: 'Post not found.' });
         }
 
-        if (post.userId !== userId) {
+        if (post.user_id !== userId) {
             return res.status(403).json({ message: 'You do not have permission to delete this post.' });
         }
 
         // Proceed with deletion
-        const result = await db.deletePost(postId);
+        const [result] = await pool.query('DELETE FROM posts WHERE post_id = ?', [postId]);
 
         if (result.affectedRows > 0) {
             res.status(200).json({ message: 'Post deleted successfully.' });
