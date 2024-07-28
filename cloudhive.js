@@ -1509,8 +1509,8 @@ app.post('/api/change_email', verifyToken, (req, res) => {
 
 // Cancel Follow Request Handler
 app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
-    const { username } = req.params;  // Extract the username from the route parameter
-    const { userId } = req.user;      // Get the user ID from the JWT token
+    const { username } = req.params;
+    const { userId } = req.user;
 
     if (!username) {
         return res.status(400).send('Username is required');
@@ -1518,21 +1518,25 @@ app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
 
     try {
         // Query the ID of the user to be followed
-        const [user] = await db.query('SELECT user_id FROM users WHERE username = ?', [username]);
+        const userResult = await db.query('SELECT id FROM users WHERE username = ?', [username]);
         
-        if (!user) {
+        console.log('User result:', userResult);
+
+        if (userResult.length === 0) {
             return res.status(404).send('User not found');
         }
 
-        const followedId = user.user_id;
+        const followedId = userResult[0].id;
 
         // Perform the delete operation based on IDs
-        const result = await db.query(
+        const deleteResult = await db.query(
             'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = ?',
             [userId, followedId, 'requested']
         );
 
-        if (result.affectedRows > 0) {
+        console.log('Delete result:', deleteResult);
+
+        if (deleteResult.affectedRows > 0) {
             res.send('Follow request canceled successfully');
         } else {
             res.status(404).send('Follow request not found or already processed');
