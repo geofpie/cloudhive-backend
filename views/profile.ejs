@@ -153,7 +153,7 @@
         <% if (loggedInUser.username === user.username) { %>
         <div class="profile-user-post d-flex">
             <div class="col-md-4 hive-post-action-bar mx-auto">
-                <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="navbar-profile-pic">
+                <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="postbar-profile-pic">
                 <button class="share-post-button" id="share-post">Say or share something</button>
                 <button class="write-post-btn write" id="pic-post">
                     <i class="fa fa-pen postbtn-icon"></i>Write Post
@@ -208,7 +208,7 @@
             </div>
         </div>
     </div>
-    
+
 <!-- Edit Profile Modal -->
 <div id="editProfileModal" class="edit-profile-modal hidden">
     <div class="edit-profile-modal-content">
