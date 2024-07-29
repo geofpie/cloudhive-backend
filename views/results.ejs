@@ -107,7 +107,7 @@
     </div>
     <div class="container">
         <h2>Search Results</h2>
-        <div class="row">
+        <div class="cards-container">
             <% users.forEach((user, index) => { %>
                     <div class="friends-card" style="animation-delay: <%= index * 0.1 %>s;">
                         <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="<%= user.username %>'s profile picture">
