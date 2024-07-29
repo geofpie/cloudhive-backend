@@ -98,7 +98,7 @@
         <div class="profile-fullwidth-header" style="background-image: url('<%= user.profile_header_url || "../assets/loginbg.jpg" %>');">
             <!-- This div is just for the header background image -->
         </div>
-        <div class="profile-content">
+        <div class="profile-container">
             <div class="profile-picture-container">
                 <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="header-profile-pic">
             </div>
@@ -132,7 +132,7 @@
             </div>
         </div>
     </div>
-    
+
         <% if (loggedInUser.username === user.username) { %>
         <div class="profile-user-post d-flex">
             <div class="col-md-4 hive-post-action-bar mx-auto">
