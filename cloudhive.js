@@ -3,44 +3,49 @@
 // July 2024
 
 // Import Modules 
-require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
-const bcrypt = require('bcryptjs'); // For hashing passwords
-const db = require('./config'); // Import MySQL connection from config.js
-const JWT_SECRET = process.env.JWT_SECRET;
-const jwt = require('jsonwebtoken'); // json web tokens
+const bcrypt = require('bcryptjs'); 
+const jwt = require('jsonwebtoken'); 
 const cookieParser = require('cookie-parser');
-const AWS = require('aws-sdk'); // AWS SDK for S3 operations
-const fs = require('fs'); // File system module
+const AWS = require('aws-sdk'); 
+const fs = require('fs');
 const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
-const dynamoDB = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' });
-const lambda = new AWS.Lambda({region: 'us-east-1'});
 const rateLimit = require('express-rate-limit');
-
+const db = require('./config'); 
 const app = express();
+const upload = multer({ storage: multer.memoryStorage() });
+const TABLE_NAME = 'cloudhive-postdb';
+
+// Trust proxy as we're running behind a load balancer
+app.set('trust proxy', true);
+
+// Server runs on port 8080 (HTTP)
 const port = 8080;
 
-// Configure AWS SDK for S3
+// .env configuration and Secrets
+require('dotenv').config();
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// AWS 
+const dynamoDB = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' });
+const lambda = new AWS.Lambda({region: 'us-east-1'});
 const s3 = new AWS.S3({
     region: 'us-east-1', 
     signatureVersion: 'v4'
 });
 
-app.set('trust proxy', true);
-
-const upload = multer({ storage: multer.memoryStorage() });
-
-const TABLE_NAME = 'cloudhive-postdb';
-
+// View Engine EJS
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Max File Transfer Size 10MB
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
+// Health Check Endpoint for Amazon ELB 
 app.get('/api/healthcheck', (req, res) => {
     res.status(200).json({ message: 'OK' });
 });
@@ -66,11 +71,11 @@ db.connect((err) => {
 
 // Create a rate limiter
 const registerRateLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000, // 15 minutes window
+    max: 100, // Limit each IP to 100 requests per window
     message: 'Too many requests from this IP, please try again later.',
     keyGenerator: (req) => {
-        // Get the IP address from 'X-Forwarded-For' or default to remoteAddress
+        // Get the IP address from 'X-Forwarded-For' or default to remoteAddress as we're behind a proxy (load balancer)
         const ip = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0] : req.connection.remoteAddress;
         return ip;
     }
@@ -111,10 +116,7 @@ app.post('/api/register', logIpAddress, registerRateLimiter, async (req, res) =>
                 }
 
                 const userId = result.insertId;
-                const token = jwt.sign({ userId, username, email }, JWT_SECRET, { expiresIn: '1h' });
-
-                // Log token generation
-                console.log('JWT Token Generated:', token);
+                const token = jwt.sign({ userId, username, email }, JWT_SECRET, { expiresIn: '2h' });
 
                 // Send the token as part of the response
                 res.cookie('token', token, { httpOnly: true, secure: true });
@@ -124,7 +126,7 @@ app.post('/api/register', logIpAddress, registerRateLimiter, async (req, res) =>
                 // Prepare payload for Lambda
                 const payload = {
                     body: JSON.stringify({
-                        email: email, // Assuming you have the email in req.user
+                        email: email,
                         username: username
                     })
                 };
@@ -132,18 +134,15 @@ app.post('/api/register', logIpAddress, registerRateLimiter, async (req, res) =>
                 // Invoke Lambda function to send a welcome email
                 const lambdaParams = {
                     FunctionName: 'arn:aws:lambda:us-east-1:576047115698:function:cloudhiveWelcomeEmail', 
-                    InvocationType: 'Event', // Asynchronous invocation
+                    InvocationType: 'Event', 
                     Payload: JSON.stringify(payload)
                 };
 
                 lambda.invoke(lambdaParams, (lambdaErr, data) => {
                     if (lambdaErr) {
                         console.error('Error invoking Lambda function:', lambdaErr);
-                        console.log(req.user.email);
-                        console.log(payload);
                     } else {
                         console.log('Lambda function invoked successfully:', data);
-                        console.log(payload);
                     }
                 });
 
@@ -168,7 +167,7 @@ const verifyToken = (req, res, next) => {
             return res.status(401).json({ redirect: '/' });
         }
 
-        req.user = decoded; // Attach the decoded token to the request object
+        req.user = decoded;
 
         // Log user information
         console.log('User logged in:', req.user);
@@ -179,7 +178,7 @@ const verifyToken = (req, res, next) => {
 
 // New login and fetch user info endpoint
 app.post('/api/login_redirect', (req, res) => {
-    const { identifier, password } = req.body; // Use 'identifier' to accept either username or email
+    const { identifier, password } = req.body; 
 
     // Fetch user from database based on username or email
     db.query('SELECT * FROM users WHERE username = ? OR email = ?', [identifier, identifier], (err, results) => {
@@ -266,7 +265,7 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
             const params = {
                 Bucket: 'cloudhive-userdata',
                 Key: profilePictureKey,
-                Expires: 60 * 60 // 1 hour expiration
+                Expires: 60 * 60
             };
             s3.getSignedUrl('getObject', params, (err, url) => {
                 if (err) {
@@ -290,9 +289,6 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
         console.log('No file uploaded');
         return res.status(400).json({ error: 'No file uploaded' });
     }
-
-    // Log the received file details
-    console.log('File received:', req.file);
 
     // Determine the file extension
     const mimeType = req.file.mimetype;
@@ -322,9 +318,6 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
         ContentType: req.file.mimetype,
         ACL: 'private'
     };
-
-    // Log the S3 upload parameters
-    console.log('S3 upload parameters:', params);
 
     // Upload the file to S3
     s3.upload(params, (err, data) => {
@@ -364,7 +357,7 @@ app.get('/search', verifyToken, (req, res) => {
     }
 
     // Retrieve the logged-in user information from the session or token
-    const loggedInUser = req.user; // Adjust according to your authentication setup
+    const loggedInUser = req.user; 
 
     console.log(`Search query: ${query}`);
 
@@ -420,7 +413,7 @@ app.get('/search', verifyToken, (req, res) => {
 // Endpoint to fetch friends data with token verification
 app.get('/api/friends', verifyToken, async (req, res) => {
     try {
-        const userId = req.user.id; // Extract user ID from decoded token
+        const userId = req.user.id;
         
         // Fetch friends list from the database
         const friends = await db.query(`
@@ -592,41 +585,6 @@ app.get('/:username', verifyToken, (req, res) => {
     });
 });
 
-app.post('/api/posts', (req, res) => {
-    const { userId, content, imageUrl } = req.body;
-    console.log('Received POST request to create a post');
-    console.log('Request body:', req.body);
-
-    // Validate inputs (userId should be fetched from req.user or req.session)
-    if (!userId || !content) {
-        return res.status(400).json({ message: 'userId and content are required' });
-    }
-
-    // Save the post to DynamoDB or your preferred database
-    const postId = generatePostId(); // Implement your own postId generation function
-    const createdAt = new Date().toISOString();
-
-    const params = {
-        TableName: 'cloudhive-postdb',
-        Item: {
-            postId,
-            userId,
-            content,
-            imageUrl,
-            createdAt
-        }
-    };
-
-    dynamoDB.put(params, (err, data) => {
-        if (err) {
-            console.error('Error saving post:', err);
-            return res.status(500).json({ message: 'Failed to save post' });
-        }
-
-        res.status(201).json({ postId });
-    });
-});
-
 app.post('/api/create_post', verifyToken, upload.single('postImage'), (req, res) => {
     const { content } = req.body;
     const userId = req.user.userId.toString(); // Ensure userId is a string
@@ -783,35 +741,6 @@ app.get('/api/follow/:username', verifyToken, async (req, res) => {
 
                 res.status(200).send('Follow request initiated');
             });
-        });
-    });
-});
-
-app.get('/api/approve-follow/:username', (req, res) => {
-    const requesteeUsername = req.session.username;  // Assuming you store the logged-in username in the session
-    const requesterUsername = req.params.username;
-
-    // Get user IDs based on usernames
-    const getUserIdsQuery = `
-        SELECT user_id, username FROM users WHERE username IN (?, ?)
-    `;
-
-    connection.query(getUserIdsQuery, [requesterUsername, requesteeUsername], (err, results) => {
-        if (err) return res.status(500).send('Database error');
-
-        const requesterId = results.find(user => user.username === requesterUsername).user_id;
-        const requesteeId = results.find(user => user.username === requesteeUsername).user_id;
-
-        // Update follow request status to 'following'
-        const updateFollowRequestQuery = `
-            UPDATE follows
-            SET status = 'following'
-            WHERE follower_id = ? AND followed_id = ? AND status = 'requested'
-        `;
-
-        connection.query(updateFollowRequestQuery, [requesterId, requesteeId], (err, results) => {
-            if (err) return res.status(500).send('Database error');
-            res.send('Follow request approved');
         });
     });
 });
@@ -1192,12 +1121,8 @@ app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
 
 // Endpoint to like/unlike a post
 app.post('/api/like/:postId', verifyToken, async (req, res) => {
-    const userId = req.user.userId.toString(); // Convert userId to string
-    const postId = req.params.postId.toString(); // Ensure postId is string
-
-    console.log('Received like request');
-    console.log('Post ID:', postId);
-    console.log('User ID:', userId);
+    const userId = req.user.userId.toString();
+    const postId = req.params.postId.toString(); 
 
     try {
         // Retrieve the post to get the original poster's userId
@@ -1455,7 +1380,7 @@ app.post('/api/change_password', verifyToken, (req, res) => {
 // Endpoint to change the email
 app.post('/api/change_email', verifyToken, (req, res) => {
     const { newEmail } = req.body;
-    const userId = req.user.userId; // Extract userId from the verified token
+    const userId = req.user.userId; 
 
     // Validate the new email
     if (!newEmail || !newEmail.includes('@')) {
@@ -1589,7 +1514,7 @@ app.delete('/api/unfollow/:username', verifyToken, async (req, res) => {
 
 // Endpoint to fetch users that the logged-in user is following
 app.get('/api/following', verifyToken, (req, res) => {
-    const userId = req.user.userId; // Ensure the correct field name for user ID
+    const userId = req.user.userId; 
 
     const fetchFollowingQuery = `
         SELECT users.user_id, users.username, users.first_name, users.last_name, users.profilepic_key
@@ -1609,7 +1534,7 @@ app.get('/api/following', verifyToken, (req, res) => {
                 const params = {
                     Bucket: 'cloudhive-userdata',
                     Key: user.profilepic_key,
-                    Expires: 3600 // 1 hour expiration (in seconds)
+                    Expires: 3600
                 };
 
                 try {
@@ -1676,15 +1601,15 @@ app.get('/api/followers', verifyToken, (req, res) => {
 // Route to handle post deletion with token verification
 app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
     const postId = req.params.postId;
-    const userId = req.user.userId; // Assuming the decoded token contains userId
+    const userId = req.user.userId; 
 
     try {
         // Check if the post belongs to the user
         const getPostParams = {
             TableName: 'cloudhive-postdb',
             Key: {
-                userId: userId.toString(), // Use partition key
-                postId: postId.toString()   // Use sort key
+                userId: userId.toString(), 
+                postId: postId.toString()
             }
         };
 
@@ -1716,8 +1641,8 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
         const deletePostParams = {
             TableName: 'cloudhive-postdb',
             Key: {
-                userId: userId.toString(), // Use partition key
-                postId: postId.toString()   // Use sort key
+                userId: userId.toString(), 
+                postId: postId.toString()
             }
         };
 
