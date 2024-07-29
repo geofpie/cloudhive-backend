@@ -95,43 +95,43 @@
 
     <!-- profile.ejs -->
     <div class="container-fluid">
-        <div class="row"></div>
         <div class="profile-fullwidth-header" style="background-image: url('<%= user.profile_header_url || "../assets/loginbg.jpg" %>');">
-            <div class="profile-content">
-                <div class="profile-picture-container">
-                    <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="header-profile-pic">
-                </div>
-                <div class="profile-info">
-                    <h3 class="profile-user-name"><%= user.first_name %> <%= user.last_name %></h3>
-                    <p class="profile-user-handle">@<%= user.username %></p>
-                </div>
-                <div class="profile-stats">
-                    <p class="profile-stat profile-posts-count"><strong><%= user.postsCount || 0 %></strong> posts</p>
-                    <p class="profile-stat profile-user-follower-count"><strong><%= user.followerCount || 0 %></strong> followers</p>
-                    <p class="profile-stat profile-user-following-count"><strong><%= user.followingCount || 0 %></strong> following</p>
-                </div>
-                <div class="profile-action">
-                    <% if (loggedInUser.username === user.username) { %>
-                        <button class="profile-action-button" id="edit-profile"><i class="fa fa-edit"></i> Edit Profile</button>
+            <!-- This div is just for the header background image -->
+        </div>
+        <div class="profile-content">
+            <div class="profile-picture-container">
+                <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="header-profile-pic">
+            </div>
+            <div class="profile-info">
+                <h3 class="profile-user-name"><%= user.first_name %> <%= user.last_name %></h3>
+                <p class="profile-user-handle">@<%= user.username %></p>
+            </div>
+            <div class="profile-stats">
+                <p class="profile-stat profile-posts-count"><strong><%= user.postsCount || 0 %></strong> posts</p>
+                <p class="profile-stat profile-user-follower-count"><strong><%= user.followerCount || 0 %></strong> followers</p>
+                <p class="profile-stat profile-user-following-count"><strong><%= user.followingCount || 0 %></strong> following</p>
+            </div>
+            <div class="profile-action">
+                <% if (loggedInUser.username === user.username) { %>
+                    <button class="profile-action-button" id="edit-profile"><i class="fa fa-edit"></i> Edit Profile</button>
+                <% } else { %>
+                    <% if (followStatus === 'requested') { %>
+                        <button id="follow-button-<%= user.username %>" class="profile-action-button" data-username="<%= user.username %>" data-status="requested" onclick="showFollowActionsModal('cancel', '<%= user.username %>')">
+                            <i class="fa fa-clock"></i> Requested
+                        </button>
+                    <% } else if (followStatus === 'following') { %>
+                        <button id="follow-button-<%= user.username %>" class="profile-action-button" onclick="showFollowActionsModal('unfollow', '<%= user.username %>')">
+                            <i class="fa fa-user-plus"></i> Following
+                        </button>
                     <% } else { %>
-                        <% if (followStatus === 'requested') { %>
-                            <button id="follow-button-<%= user.username %>" class="profile-action-button" data-username="<%= user.username %>" data-status="requested" onclick="showFollowActionsModal('cancel', '<%= user.username %>')">
-                                <i class="fa fa-clock"></i> Requested
-                            </button>
-                        <% } else if (followStatus === 'following') { %>
-                            <button id="follow-button-<%= user.username %>" class="profile-action-button" onclick="showFollowActionsModal('unfollow', '<%= user.username %>')">
-                                <i class="fa fa-user-plus"></i> Following
-                            </button>
-                        <% } else { %>
-                            <button id="follow-button-<%= user.username %>" class="profile-action-button" data-username="<%= user.username %>" onclick="sendFollowRequest('<%= user.username %>')">
-                                <i class="fa fa-user-plus"></i> Follow
-                            </button>
-                        <% } %>
+                        <button id="follow-button-<%= user.username %>" class="profile-action-button" data-username="<%= user.username %>" onclick="sendFollowRequest('<%= user.username %>')">
+                            <i class="fa fa-user-plus"></i> Follow
+                        </button>
                     <% } %>
-                </div>
+                <% } %>
             </div>
         </div>
-    </div>
+    </div​⬤
 
         <% if (loggedInUser.username === user.username) { %>
         <div class="profile-user-post d-flex">
