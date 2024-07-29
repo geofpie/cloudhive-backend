@@ -108,15 +108,13 @@
     <div class="container">
         <h2>Search Results</h2>
         <div class="row">
-            <% users.forEach(user => { %>
+            <% users.forEach((user, index) => { %>
                 <div class="col-md-3">
-                    <div class="card shadow result-card">
-                        <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" class="card-img-top" alt="Profile Picture">
-                        <div class="card-body">
-                            <a href="/<%= user.username %>"><h5 class="card-title"><%= user.first_name %> <%= user.last_name %></h5>
-                            <p class="card-text">@<%= user.username %></p></a>
-                            <a href="/<%= user.username %>" class="btn hive-btn">View Profile</a>
-                        </div>
+                    <div class="friends-card" style="animation-delay: <%= index * 0.1 %>s;">
+                        <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="<%= user.username %>'s profile picture">
+                        <h3 class="friends-card-header"><%= user.first_name %> <%= user.last_name %></h3>
+                        <p>@<%= user.username %></p>
+                        <a class="friends-card-btn" href="/<%= user.username %>">View Profile</a>
                     </div>
                 </div>
             <% }) %>
