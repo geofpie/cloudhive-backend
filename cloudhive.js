@@ -1665,7 +1665,6 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
     }
 });
 
-// Endpoint to get mutual followers and their statuses
 app.get('/api/get_mutual_followers', verifyToken, (req, res) => {
     const userId = req.user.userId;
 
@@ -1683,6 +1682,8 @@ app.get('/api/get_mutual_followers', verifyToken, (req, res) => {
             console.error('Error fetching mutual followers:', err);
             return res.status(500).json({ error: 'Failed to fetch mutual followers' });
         }
+
+        console.log('Query results:', results); // Log query results
 
         // Calculate status and format last activity
         const friendsList = results.map(friend => {
@@ -1711,6 +1712,8 @@ app.get('/api/get_mutual_followers', verifyToken, (req, res) => {
                 timeAgo
             };
         });
+
+        console.log('Processed friends list:', friendsList); // Log processed friends list
 
         res.status(200).json({ friendsList });
     });
