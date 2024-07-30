@@ -240,47 +240,57 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
     // Log the user ID
     console.log(`Fetching information for user ID: ${userId}`);
 
-    // Fetch user information from database
-    db.query('SELECT first_name, last_name, profilepic_key, username, email FROM users WHERE user_id = ?', [userId], (err, results) => {
-        if (err) {
-            console.error('Error fetching user information:', err);
-            return res.status(500).json({ error: 'Failed to fetch user information' });
+    // Update last activity timestamp
+    const updateTimestampQuery = 'UPDATE users SET last_activity = NOW() WHERE user_id = ?';
+    db.query(updateTimestampQuery, [userId], (updateErr) => {
+        if (updateErr) {
+            console.error('Error updating last activity timestamp:', updateErr);
+            return res.status(500).json({ error: 'Failed to update last activity timestamp' });
         }
 
-        if (results.length === 0) {
-            console.log('User not found');
-            return res.status(404).json({ error: 'User not found' });
-        }
+        // Fetch user information from database
+        const fetchUserInfoQuery = 'SELECT first_name, last_name, profilepic_key, username, email FROM users WHERE user_id = ?';
+        db.query(fetchUserInfoQuery, [userId], (fetchErr, results) => {
+            if (fetchErr) {
+                console.error('Error fetching user information:', fetchErr);
+                return res.status(500).json({ error: 'Failed to fetch user information' });
+            }
 
-        const userInfo = results[0];
+            if (results.length === 0) {
+                console.log('User not found');
+                return res.status(404).json({ error: 'User not found' });
+            }
 
-        // Log the fetched user information
-        console.log('User information fetched:', userInfo);
-        console.log(req.user.email);
+            const userInfo = results[0];
 
-        // Generate presigned URL for profile picture
-        const profilePictureKey = userInfo.profilepic_key;
-        if (profilePictureKey) {
-            console.log(`Profile picture key found: ${profilePictureKey}`);
-            const params = {
-                Bucket: 'cloudhive-userdata',
-                Key: profilePictureKey,
-                Expires: 60 * 60
-            };
-            s3.getSignedUrl('getObject', params, (err, url) => {
-                if (err) {
-                    console.error('Error generating presigned URL:', err);
-                    return res.status(500).json({ error: 'Failed to generate presigned URL' });
-                }
+            // Log the fetched user information
+            console.log('User information fetched:', userInfo);
+            console.log(req.user.email);
 
-                console.log(`Presigned URL generated: ${url}`);
-                userInfo.profile_picture_url = url;
+            // Generate presigned URL for profile picture
+            const profilePictureKey = userInfo.profilepic_key;
+            if (profilePictureKey) {
+                console.log(`Profile picture key found: ${profilePictureKey}`);
+                const params = {
+                    Bucket: 'cloudhive-userdata',
+                    Key: profilePictureKey,
+                    Expires: 60 * 60
+                };
+                s3.getSignedUrl('getObject', params, (s3Err, url) => {
+                    if (s3Err) {
+                        console.error('Error generating presigned URL:', s3Err);
+                        return res.status(500).json({ error: 'Failed to generate presigned URL' });
+                    }
+
+                    console.log(`Presigned URL generated: ${url}`);
+                    userInfo.profile_picture_url = url;
+                    res.status(200).json({ userInfo });
+                });
+            } else {
+                console.log('No profile picture key found');
                 res.status(200).json({ userInfo });
-            });
-        } else {
-            console.log('No profile picture key found');
-            res.status(200).json({ userInfo });
-        }
+            }
+        });
     });
 });
 
