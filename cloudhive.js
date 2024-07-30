@@ -1665,60 +1665,6 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
     }
 });
 
-app.get('/api/get_mutual_followers', verifyToken, (req, res) => {
-    const userId = req.user.userId;
-
-    // Query to get mutual followers and their last activity
-    const query = `
-        SELECT u.user_id, u.username, u.profilepic_key, u.last_activity
-        FROM follows f1
-        JOIN follows f2 ON f1.follower_id = f2.followed_id AND f1.followed_id = f2.follower_id
-        JOIN users u ON f1.follower_id = u.user_id
-        WHERE f1.follower_id = ? AND f1.followed_id = ?
-    `;
-
-    db.query(query, [userId, userId], (err, results) => {
-        if (err) {
-            console.error('Error fetching mutual followers:', err);
-            return res.status(500).json({ error: 'Failed to fetch mutual followers' });
-        }
-
-        console.log('Query results:', results); // Log query results
-
-        // Calculate status and format last activity
-        const friendsList = results.map(friend => {
-            const now = dayjs();
-            const lastActivity = dayjs(friend.last_activity);
-            const diffHours = now.diff(lastActivity, 'hour');
-
-            let status = 'Offline';
-            if (diffHours <= 1) {
-                status = 'Online';
-            } else if (diffHours <= 4) {
-                status = 'Away';
-            }
-
-            // Format last activity
-            let timeAgo;
-            if (diffHours < 24) {
-                timeAgo = `${Math.round(diffHours)}h`;
-            } else {
-                timeAgo = `${Math.round(diffHours / 24)}d`;
-            }
-
-            return {
-                ...friend,
-                status,
-                timeAgo
-            };
-        });
-
-        console.log('Processed friends list:', friendsList); // Log processed friends list
-
-        res.status(200).json({ friendsList });
-    });
-});
-
 app.use((req, res) => {
     res.redirect('/');
 });
