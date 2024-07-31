@@ -1665,6 +1665,60 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
     }
 });
 
+app.get('/api/mutual-follows-status', verifyToken, async (req, res) => {
+    const userId = req.userId; // Obtained from token
+    const now = Date.now();
+
+    // Fetch mutual follows
+    const followsResult = await DynamoDB.query({
+        TableName: 'follows',
+        IndexName: 'follower-id-index',
+        KeyConditionExpression: 'follower_id = :userId',
+        ExpressionAttributeValues: { ':userId': userId }
+    }).promise();
+
+    const mutualFollows = followsResult.Items;
+    const mutualFollowIds = mutualFollows
+        .filter(follow => mutualFollows.some(f => f.follower_id === follow.followed_id))
+        .map(f => f.followed_id);
+
+    if (mutualFollowIds.length === 0) {
+        return res.json([]);
+    }
+
+    // Fetch user statuses
+    const usersResult = await DynamoDB.batchGet({
+        RequestItems: {
+            'users': {
+                Keys: mutualFollowIds.map(id => ({ user_id: id }))
+            }
+        }
+    }).promise();
+
+    const users = usersResult.Responses['users'];
+
+    const statuses = users.map(user => {
+        const lastActivity = new Date(user.last_activity).getTime();
+        const diffInHours = (now - lastActivity) / (1000 * 60 * 60);
+
+        let status;
+        if (diffInHours < 1) {
+            status = 'online'; // Green
+        } else if (diffInHours < 4) {
+            status = 'away'; // Orange
+        } else {
+            status = 'offline'; // Grey
+        }
+
+        return {
+            user_id: user.user_id,
+            status
+        };
+    });
+
+    res.json(statuses);
+});
+
 app.use((req, res) => {
     res.redirect('/');
 });
