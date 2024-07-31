@@ -109,13 +109,15 @@
     <!-- profile.ejs -->
     <div class="container-fluid">
         <div class="row profile-fullwidth-header" style="background-image: url('<%= user.profile_header_url || "../assets/loginbg.jpg" %>'); background-size: cover; background-position: center;">
-            <div class="col d-flex">
-                <div class="profile-user-name align">
+            <div class="col d-flex align-items-center">
+                <div class="profile-user-name d-flex align-items-center">
                     <img src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile" class="header-profile-pic shadow">
-                    <h3 class="profile-user-name-elem"><%= user.first_name %> <%= user.last_name %></h3>
-                    <p class="profile-user-country" id="profile-user-country">@<%= user.username %></p>
+                    <div class="profile-user-info ml-3">
+                        <h3 class="profile-user-name-elem" style="color: white;"><%= user.first_name %> <%= user.last_name %></h3>
+                        <p class="profile-user-country" id="profile-user-country" style="color: white;">@<%= user.username %></p>
+                    </div>
                 </div>
-                <div class="profile-user-stats mt-auto align-bottom">
+                <div class="profile-user-stats ml-auto text-right">
                     <div class="col">
                         <p class="profile-stat profile-posts-count" id="profile-posts-count"><strong><%= user.postsCount || 0 %></strong> posts</p>
                         <p class="profile-stat profile-user-follower-count" id="profile-user-follower-count"><strong><%= user.followerCount || 0 %></strong> followers</p>
