@@ -244,7 +244,7 @@
                     <img id="headerPicPreview" class="edit-profile-header-preview" src="assets/loginbg.jpg" alt="Header Picture Preview">
                     <div class="profile-picture-container">
                         <div class="form-group">
-                            <img id="profilePicPreview" class="edit-profile-img-preview" src="#" alt="Profile Picture Preview" style="display: none;">
+                            <img id="profilePicPreview" class="edit-profile-img-preview" src="<%= user.profile_picture_url || '../assets/default-profile.jpg' %>" alt="Profile Picture Preview" style="display: none;">
                         </div>
                     </div>
                 </div>
@@ -302,7 +302,7 @@
             <div class="col footer-center">
                 <img src="../assets/logo-dark.svg" width="46" height="46" alt="cloudhive">
                 <h6 class="footer-brand-name">cloudhive</h6>
-                <p class="footer-version">v0.3.0-beta-main</p>
+                <p class="footer-version">v0.4.1-beta-main</p>
                 <hr class="footer-divider">
                 <p class="footer-learn-more">cloudhive is a Web Application developed by <a href="https://github.com/geofpie">Geoffrey Lee</a> from Singapore Institute of Technology for a cloud computing project.</p>
                 <p class="footer-learn-more">Learn more about this project on <a href="https://github.com/geofpie/cloudhive">GitHub</a>.</p>
