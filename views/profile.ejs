@@ -212,6 +212,25 @@
         </div>
     </div>
 
+    <!-- Follow Actions Modal -->
+    <div id="followActionsModal" class="follow-modal">
+        <div class="follow-modal-dialog">
+            <div class="follow-modal-content">
+                <div class="follow-modal-header">
+                    <h5 id="followActionsModalLabel">Confirm Action</h5>
+                    <button type="button" class="follow-modal-close" onclick="closeFollowActionsModal()">&times;</button>
+                </div>
+                <div class="follow-modal-body">
+                    Are you sure you want to <span id="followActionType"></span>?
+                </div>
+                <div class="follow-modal-footer">
+                    <button type="button" class="follow-action-sec" onclick="closeFollowActionsModal()">Cancel</button>
+                    <button type="button" class="follow-action-pri" id="confirmFollowAction" onclick="handleModalConfirm()">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <!-- Edit Profile Modal -->
 <div id="editProfileModal" class="edit-profile-modal hidden">
     <div class="edit-profile-modal-content">
@@ -256,24 +275,6 @@
             </form>
         </div>
     </div>
-<!-- Follow Actions Modal -->
-<div id="followActionsModal" class="follow-modal">
-    <div class="follow-modal-dialog">
-        <div class="follow-modal-content">
-            <div class="follow-modal-header">
-                <h5 id="followActionsModalLabel">Confirm Action</h5>
-                <button type="button" class="follow-modal-close" onclick="closeFollowActionsModal()">&times;</button>
-            </div>
-            <div class="follow-modal-body">
-                Are you sure you want to <span id="followActionType"></span>?
-            </div>
-            <div class="follow-modal-footer">
-                <button type="button" class="follow-action-sec" onclick="closeFollowActionsModal()">Cancel</button>
-                <button type="button" class="follow-action-pri" id="confirmFollowAction" onclick="handleModalConfirm()">Confirm</button>
-            </div>
-        </div>
-    </div>
-</div>
 <!-- Custom Modal for Image Crop -->
 <div id="cropModal" class="crop-modal">
     <div class="crop-modal-dialog">
