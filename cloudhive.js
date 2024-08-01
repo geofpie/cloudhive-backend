@@ -200,7 +200,7 @@ app.post('/api/login_redirect', (req, res) => {
             }
 
             // Fetch complete user information including email
-            db.query('SELECT username, email, first_name, last_name, country FROM users WHERE user_id = ?', [user.user_id], (err, results) => {
+            db.query('SELECT username, email, first_name, last_name FROM users WHERE user_id = ?', [user.user_id], (err, results) => {
                 if (err) {
                     console.error('Error fetching user information:', err);
                     return res.status(500).json({ error: 'Failed to fetch user information' });
@@ -223,7 +223,7 @@ app.post('/api/login_redirect', (req, res) => {
                 res.cookie('token', token, { httpOnly: true, secure: true });
 
                 // Check if required fields are empty
-                if (!userInfo.first_name || !userInfo.last_name || !userInfo.country) {
+                if (!userInfo.first_name || !userInfo.last_name) {
                     return res.status(302).json({ redirect: '/onboarding' });
                 }
 
@@ -342,11 +342,10 @@ app.post('/api/onboard_profile_update', verifyToken, upload.single('profilePic')
         const profilePicUrl = data.Location;
         const firstName = req.body['first-name'];
         const lastName = req.body['last-name'];
-        const country = req.body.country;
 
         // Update user information in the database
-        db.query('UPDATE users SET profile_pic = ?, profilepic_key = ?, first_name = ?, last_name = ?, country = ? WHERE user_id = ?',
-            [profilePicUrl, profilePicKey, firstName, lastName, country, req.user.userId],
+        db.query('UPDATE users SET profile_pic = ?, profilepic_key = ?, first_name = ?, last_name = ? WHERE user_id = ?',
+            [profilePicUrl, profilePicKey, firstName, lastName, req.user.userId],
             (err, result) => {
                 if (err) {
                     console.error('Error updating user information in database:', err);
