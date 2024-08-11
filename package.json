@@ -1,0 +1,19 @@
+{
+  "name": "cloudhive-backend",
+  "version": "0.4.1",
+  "description": "cloudhive App Server Backend App",
+  "main": "cloudhive.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/geofpie/cloudhive-backend.git"
+  },
+  "author": "Geoffrey Lee",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/geofpie/cloudhive-backend/issues"
+  },
+  "homepage": "https://github.com/geofpie/cloudhive-backend#readme"
+}

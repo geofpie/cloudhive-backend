@@ -248,7 +248,7 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
             return res.status(500).json({ error: 'Failed to update last activity timestamp' });
         }
 
-        // Fetch user information from database
+        // Fetch user information from db
         const fetchUserInfoQuery = 'SELECT first_name, last_name, profilepic_key, username, email FROM users WHERE user_id = ?';
         db.query(fetchUserInfoQuery, [userId], (fetchErr, results) => {
             if (fetchErr) {
@@ -281,13 +281,12 @@ app.get('/api/get_user_info', verifyToken, (req, res) => {
                         console.error('Error generating presigned URL:', s3Err);
                         return res.status(500).json({ error: 'Failed to generate presigned URL' });
                     }
-
-                    console.log(`Presigned URL generated: ${url}`);
+                    // Send the presigned profile URL to the frontend 
                     userInfo.profile_picture_url = url;
                     res.status(200).json({ userInfo });
                 });
             } else {
-                console.log('No profile picture key found');
+                // If no profile picture, do not send presigned URL 
                 res.status(200).json({ userInfo });
             }
         });
@@ -441,6 +440,7 @@ app.get('/api/friends', verifyToken, async (req, res) => {
     }
 });
 
+// Endpoint for user profile 
 app.get('/:username', verifyToken, (req, res) => {
     const username = req.params.username;
     console.log(`Fetching profile for username: ${username}`);
@@ -476,7 +476,8 @@ app.get('/:username', verifyToken, (req, res) => {
                 return res.status(500).send('Internal Server Error');
             }
 
-            let followStatus = 'Follow'; // Default to Follow if no record found
+            // Defaults to Follow status if there is no record found in the database. 
+            let followStatus = 'Follow';
             if (followResults.length > 0) {
                 followStatus = followResults[0].status;
             }
@@ -531,14 +532,14 @@ app.get('/:username', verifyToken, (req, res) => {
                         const postCount = data.Count;
                         userInfo.postsCount = postCount;
 
-                        // Presign the profile picture URL if it exists
+                        // Presign the profile picture URL if present in db 
                         const s3Operations = [];
 
                         if (userInfo.profilepic_key) {
                             const profilePicParams = {
                                 Bucket: 'cloudhive-userdata',
                                 Key: `${userInfo.profilepic_key}`,
-                                Expires: 3600 // 1 hour expiration (in seconds)
+                                Expires: 3600 // seconds
                             };
                             s3Operations.push(
                                 new Promise((resolve, reject) => {
@@ -556,12 +557,12 @@ app.get('/:username', verifyToken, (req, res) => {
                             );
                         }
 
-                        // Presign the header picture URL if it exists
+                        // Presign the header picture URL if it exists in db 
                         if (userInfo.profile_header_key) {
                             const headerPicParams = {
                                 Bucket: 'cloudhive-userdata',
                                 Key: `${userInfo.profile_header_key}`,
-                                Expires: 3600 // 1 hour expiration (in seconds)
+                                Expires: 3600 // seconds
                             };
                             s3Operations.push(
                                 new Promise((resolve, reject) => {
@@ -596,7 +597,7 @@ app.get('/:username', verifyToken, (req, res) => {
 
 app.post('/api/create_post', verifyToken, upload.single('postImage'), (req, res) => {
     const { content } = req.body;
-    const userId = req.user.userId.toString(); // Ensure userId is a string
+    const userId = req.user.userId.toString(); // Converts UID to string as the db is set up as string. 
     const username = req.user.username;
 
     let postImageKey = null;
@@ -628,6 +629,7 @@ app.post('/api/create_post', verifyToken, upload.single('postImage'), (req, res)
     }
 });
 
+// Global function to save post to DynamoDB database
 function savePostToDynamoDB(userId, username, content, postImageKey, res) {
     const postId = crypto.randomBytes(16).toString('hex');
     const postTimestamp = new Date().toISOString();
@@ -654,6 +656,7 @@ function savePostToDynamoDB(userId, username, content, postImageKey, res) {
     });
 }
 
+// Follow endpoint for following a user
 app.get('/api/follow/:username', verifyToken, async (req, res) => {
     if (!req.user || !req.user.userId || !req.user.username) {
         console.error('Error: Invalid user information in req.user');
@@ -692,17 +695,14 @@ app.get('/api/follow/:username', verifyToken, async (req, res) => {
         `;
         db.query(checkFollowQuery, [followerId, profileUser.user_id], (err, results) => {
             if (err) {
-                console.error('Error checking follow request:', err);
                 return res.status(500).send('Internal Server Error');
             }
 
             if (results.length > 0) {
                 const existingStatus = results[0].status;
                 if (existingStatus === 'requested') {
-                    console.log(`Follow request from ${followerUsername} to ${followedUsername} already pending`);
                     return res.status(400).send('Follow request already pending');
                 } else if (existingStatus === 'following') {
-                    console.log(`User ${followerUsername} is already following ${followedUsername}`);
                     return res.status(400).send('Already following');
                 }
             }
@@ -718,12 +718,10 @@ app.get('/api/follow/:username', verifyToken, async (req, res) => {
                     return res.status(500).send('Error inserting follow request');
                 }
 
-                console.log(`Follow request from ${followerUsername} to ${followedUsername} initiated successfully`);
-
                 // Prepare Lambda invocation payload
                 const lambdaPayload = {
                     body: JSON.stringify({
-                        email: profileUser.email, // Email of the requested user
+                        email: profileUser.email,
                         followerUsername: followerUsername
                     })
                 };
@@ -797,6 +795,7 @@ app.get('/api/follow-requests', verifyToken, (req, res) => {
     });
 });
 
+// Endpoint to accept follow request from user
 app.post('/api/follow-requests/accept', verifyToken, (req, res) => {
     const { username } = req.body;
     const followedId = req.user.userId;
@@ -835,6 +834,7 @@ app.post('/api/follow-requests/accept', verifyToken, (req, res) => {
     });
 });
 
+// Endpoint to deny follow request 
 app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
     const { username } = req.body;
     const followedId = req.user.userId;
@@ -871,17 +871,16 @@ app.post('/api/follow-requests/deny', verifyToken, (req, res) => {
 
 app.get('/api/newsfeed', verifyToken, async (req, res) => {
     const loggedInUserId = req.user.userId;
-    const { lastTimestamp } = req.query; // Use lastTimestamp from frontend
+    const { lastTimestamp } = req.query; // Utilises last timestamp from frontend for pagination 
 
-    // Log the lastTimestamp received from the frontend
-    console.log('Received lastTimestamp:', lastTimestamp);
-
+    // Create DB query 
     const getFollowedUsersQuery = `
         SELECT followed_id
         FROM follows
         WHERE follower_id = ? AND status = 'following'
     `;
     
+    // Query DB for followed users
     db.query(getFollowedUsersQuery, [loggedInUserId], async (err, followResults) => {
         if (err) {
             console.error('Error fetching followed users:', err);
@@ -928,12 +927,12 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
                     });
                 }));
 
-                // Check if the logged-in user has liked each post
+                // Check if the user has liked any posts in the feed
                 const likedPostsPromises = data.Items.map(post => {
                     const params = {
                         TableName: 'cloudhive-likes',
                         Key: {
-                            postId: post.postId.toString(),
+                            postId: post.postId.toString(), // Ensures the items are indexable by the db as the partition key is a String
                             userId: loggedInUserId.toString()
                         }
                     };
@@ -974,7 +973,6 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
 
                 allPosts = allPosts.concat(data.Items);
             } catch (err) {
-                console.error('Error fetching posts:', err);
                 return res.status(500).json({ message: 'Failed to fetch posts' });
             }
         }
@@ -985,20 +983,15 @@ app.get('/api/newsfeed', verifyToken, async (req, res) => {
 
         // Log the paginated posts and lastTimestamp for debugging
         const lastTimestampValue = paginatedPosts.length > 0 ? paginatedPosts[paginatedPosts.length - 1].postTimestamp : null;
-        console.log('LastTimestamp to be sent to frontend:', lastTimestampValue);
-
         res.json({ Items: paginatedPosts, LastEvaluatedKey: lastTimestampValue });
     });
 });
 
+// Endpoint to view user posts and generate profile feed
 app.get('/api/user/:username/posts', verifyToken, async (req, res) => {
     const { username } = req.params;
-    const { lastTimestamp } = req.query; // Ensure consistent parameter naming
+    const { lastTimestamp } = req.query;
     const loggedInUserId = req.user.userId;
-
-    console.log('Received username:', username);
-    console.log('Received lastTimestamp:', lastTimestamp);
-    console.log('Logged-in user ID:', loggedInUserId);
 
     // Get user ID from username
     const getUserIdQuery = 'SELECT user_id FROM users WHERE username = ?';
@@ -1134,7 +1127,7 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
     const postId = req.params.postId.toString(); 
 
     try {
-        // Retrieve the post to get the original poster's userId
+        // Retrieve the post to get the original poster's user id 
         const scanPostParams = {
             TableName: 'cloudhive-postdb',
             FilterExpression: 'postId = :postId',
@@ -1157,16 +1150,12 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
             TableName: 'cloudhive-likes',
             Key: { postId: postId, userId: userId }
         };
-
-        console.log('Checking if user has already liked the post:', JSON.stringify(checkLikeParams, null, 2));
         const likeResult = await dynamoDB.get(checkLikeParams).promise();
-        console.log('Like check result:', JSON.stringify(likeResult, null, 2));
-
         let responseMessage;
         let updatedLikeCount;
 
         if (likeResult.Item) {
-            // User has already liked the post, so we remove the like
+            // User has already liked the post, so remove like
             const removeLikeParams = {
                 TableName: 'cloudhive-likes',
                 Key: { postId: postId, userId: userId }
@@ -1189,7 +1178,7 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
             updatedLikeCount = updateResult.Attributes.likes;
             responseMessage = 'Like removed';
         } else {
-            // User has not liked the post, so we add the like
+            // User has not liked the post, so like is added
             const addLikeParams = {
                 TableName: 'cloudhive-likes',
                 Item: { postId: postId, userId: userId }
@@ -1220,9 +1209,8 @@ app.post('/api/like/:postId', verifyToken, async (req, res) => {
     }
 });
 
+// Update profile endpoint 
 app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic', maxCount: 1 }, { name: 'headerPic', maxCount: 1 }]), (req, res) => {
-    console.log('Request user:', req.user); // Log req.user to check its content
-
     if (!req.user || !req.user.userId) {
         return res.status(401).json({ error: 'User not authenticated' });
     }
@@ -1231,10 +1219,6 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
     const { firstName, lastName, username, email } = req.body;
     const profilePic = req.files['profilePic'] ? req.files['profilePic'][0] : null;
     const headerPic = req.files['headerPic'] ? req.files['headerPic'][0] : null;
-
-    console.log(`Updating profile for user ID: ${userId}`);
-    console.log('Received profile picture:', profilePic);
-    console.log('Received header picture:', headerPic);
 
     // Fetch the current user data
     db.query('SELECT profilepic_key, profile_header_key FROM users WHERE user_id = ?', [userId], (err, results) => {
@@ -1263,7 +1247,7 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
             }).promise();
         };
 
-        // Function to delete image from S3
+        // Delete old image from S3
         const deleteFromS3 = (key) => {
             return s3.deleteObject({
                 Bucket: 'cloudhive-userdata',
@@ -1277,12 +1261,10 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
             // Upload new profile picture and delete old one if exists
             s3Operations.push(uploadToS3(profilePic, 'profile-pics').then(data => {
                 updates.profilepic_key = data.Key;
-                updates.profile_pic = data.Location; // Save the URL
-                console.log('Profile picture uploaded to S3 with URL:', data.Location);
+                updates.profile_pic = data.Location;
 
                 if (oldProfilePicKey) {
                     return deleteFromS3(oldProfilePicKey).then(() => {
-                        console.log('Old profile picture deleted from S3');
                     });
                 }
             }));
@@ -1333,12 +1315,12 @@ app.post('/api/update_profile', verifyToken, upload.fields([{ name: 'profilePic'
 app.post('/api/change_password', verifyToken, (req, res) => {
     const { currentPassword, newPassword, confirmNewPassword } = req.body;
 
-    // Ensure all fields are provided
+    // Ensure all fields are provided, this is validated in the frontend but we will do a backend verification just to be safe. 
     if (!currentPassword || !newPassword || !confirmNewPassword) {
         return res.status(400).json({ error: 'All fields are required' });
     }
 
-    // Check if new passwords match
+    // Check if new passwords match. This is also validated in the frontend already, but will verifiy in the backend to be safe. 
     if (newPassword !== confirmNewPassword) {
         return res.status(400).json({ error: 'New password and confirmation do not match' });
     }
@@ -1349,7 +1331,6 @@ app.post('/api/change_password', verifyToken, (req, res) => {
     // Query the database for the user's current password hash
     db.query('SELECT password_hash FROM users WHERE user_id = ?', [userId], (err, results) => {
         if (err) {
-            console.error('Error retrieving user:', err);
             return res.status(500).json({ error: 'Database error' });
         }
 
@@ -1386,7 +1367,7 @@ app.post('/api/change_password', verifyToken, (req, res) => {
     });
 });
 
-// Endpoint to change the email
+// Endpoint to change user email 
 app.post('/api/change_email', verifyToken, (req, res) => {
     const { newEmail } = req.body;
     const userId = req.user.userId; 
@@ -1419,12 +1400,13 @@ app.post('/api/change_email', verifyToken, (req, res) => {
     });
 });
 
+// Cancel follow request endpoint
 app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
     try {
-        // Get the username from the request parameters
+        // Get the username from the request
         const followedUsername = req.params.username;
 
-        // Get the logged-in user's ID from the token
+        // Get the logged in user's ID from the token
         const { userId } = req.user;
 
         // Perform the query to get the user_id of the user to be unfollowed
@@ -1470,15 +1452,16 @@ app.delete('/api/cancel-follow/:username', verifyToken, async (req, res) => {
     }
 });
 
+// Unfollow user endpoint
 app.delete('/api/unfollow/:username', verifyToken, async (req, res) => {
     try {
         // Get the username from the request parameters
         const followedUsername = req.params.username;
 
-        // Get the logged-in user's ID from the token
+        // Get the signed in user id from the token
         const { userId } = req.user;
 
-        // Perform the query to get the user_id of the user to be unfollowed
+        // Perform the query to get the user id of the user to be unfollowed
         db.query(
             'SELECT user_id FROM users WHERE username = ?',
             [followedUsername],
@@ -1495,13 +1478,12 @@ app.delete('/api/unfollow/:username', verifyToken, async (req, res) => {
 
                 const followedUserId = results[0].user_id;
 
-                // Perform the delete operation
+                // Perform the unfollow request
                 db.query(
                     'DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = "following"',
                     [userId, followedUserId],
                     (deleteErr, deleteResults) => {
                         if (deleteErr) {
-                            console.error('Delete operation error:', deleteErr);
                             return res.status(500).json({ message: 'Internal server error' });
                         }
 
@@ -1516,12 +1498,11 @@ app.delete('/api/unfollow/:username', verifyToken, async (req, res) => {
             }
         );
     } catch (error) {
-        console.error('Error unfollowing user:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
 
-// Endpoint to fetch users that the logged-in user is following
+// Fetch users that the user is following endpoint
 app.get('/api/following', verifyToken, (req, res) => {
     const userId = req.user.userId; 
 
@@ -1564,9 +1545,9 @@ app.get('/api/following', verifyToken, (req, res) => {
     });
 });
 
-// Endpoint to fetch users who are following the logged-in user
+// Fetch users who are following the user
 app.get('/api/followers', verifyToken, (req, res) => {
-    const userId = req.user.userId; // Ensure the correct field name for user ID
+    const userId = req.user.userId;
 
     const fetchFollowersQuery = `
         SELECT users.user_id, users.username, users.first_name, users.last_name, users.profilepic_key
@@ -1586,7 +1567,7 @@ app.get('/api/followers', verifyToken, (req, res) => {
                 const params = {
                     Bucket: 'cloudhive-userdata',
                     Key: user.profilepic_key,
-                    Expires: 3600 // 1 hour expiration (in seconds)
+                    Expires: 3600 // seconds
                 };
 
                 try {
@@ -1607,7 +1588,7 @@ app.get('/api/followers', verifyToken, (req, res) => {
     });
 });
 
-// Route to handle post deletion with token verification
+// Delete post endpoint 
 app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
     const postId = req.params.postId;
     const userId = req.user.userId; 
@@ -1635,7 +1616,6 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
 
         // Check if the post has an associated image
         if (post.postImageKey) {
-            // Define parameters for S3 delete operation
             const deleteImageParams = {
                 Bucket: 'cloudhive-userdata',
                 Key: post.postImageKey
@@ -1664,6 +1644,7 @@ app.delete('/api/posts/:postId', verifyToken, async (req, res) => {
     }
 });
 
+// Redirect to homepage 
 app.use((req, res) => {
     res.redirect('/');
 });
